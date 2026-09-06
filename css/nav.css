@@ -1,0 +1,818 @@
+/* ==========================================================================
+   Navigation — reference bar → glass pill, plus the full-screen ink overlay.
+   Mechanics: floating pill, dot-grid menu button, letter scramble on hover,
+   oversized giant-item list scrubbed by pointer Y (js/menu.js — untouched by
+   the re-skin), and a client-side piece search (js/search.js).
+   All motion is disabled under prefers-reduced-motion.
+   ========================================================================== */
+
+/* ---- The pill bar --------------------------------------------------------
+   THREE states now, where there used to be two:
+
+   • AT REST on a light page (default): an opaque paper bar with a bottom
+     hairline. Dark type.
+   • AT REST over a dark hero (body[data-nav="over-dark"]): fully transparent,
+     white type, white hairline — the reference's bar, sitting on the artwork
+     rather than on a band of its own.
+   • FLOATING (.is-floating, scrolled > 24px): the glass pill, inset 15px.
+     Unchanged behaviour; js/shell.js toggles the class at 24px exactly as
+     before, so no JS state machine was added.
+
+   At-rest is the CSS default, so a no-JS visit still gets a working bar. */
+:root { --dock-h: 72px; }
+@media (max-width: 900px) { :root { --dock-h: 64px; } }
+
+/* --dock-h is the HEADER's height, despite the name. There used to be a second,
+   confusable --dock-bar-h here for the mobile bottom bar; that bar was replaced by
+   the floating quote pill (css/base.css), which is sized by --fab-h instead. */
+
+.pill-head {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  /* Explicit height = the reserved --dock-h, so the bar can never be taller
+     than the space the page leaves for it (no hero overlap, ever). */
+  height: var(--dock-h);
+  padding: 0 clamp(18px, 3vw, 34px);
+  box-sizing: border-box;
+  background: rgba(250, 250, 250, 0.70);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: var(--edge-dk);
+  color: var(--on-light);
+  border-radius: 0;
+  pointer-events: none;            /* only children are clickable */
+  transition: top .4s cubic-bezier(.645,.045,.355,1),
+              left .4s cubic-bezier(.645,.045,.355,1),
+              right .4s cubic-bezier(.645,.045,.355,1),
+              padding .4s cubic-bezier(.645,.045,.355,1),
+              border-radius .4s cubic-bezier(.645,.045,.355,1),
+              color .4s cubic-bezier(.645,.045,.355,1),
+              background-color .4s cubic-bezier(.645,.045,.355,1);
+  animation: pill-in .7s cubic-bezier(.645,.045,.355,1) both;
+}
+.pill-head > * { pointer-events: auto; }
+@keyframes pill-in { from { transform: translateY(-200%); } to { transform: translateY(0); } }
+
+/* At rest over a dark hero: no surface at all. */
+body[data-nav="over-dark"] .pill-head:not(.is-floating) {
+  background: transparent;
+  border-bottom: var(--edge);
+  color: var(--on-dark);
+}
+/* Same treatment while the overlay is open, on every page. Without this a light
+   page keeps its opaque paper bar, which then sits as a white slab on top of the
+   overlay — the one state where the bar's own surface fights the thing it
+   opened. The overlay is z-index 80 and the bar 90, so the bar stays visible.
+
+   Its white type is now 18.4:1 on the ink overlay, where it was 5.29:1 on the old
+   red field. This rule was written for the red ground and holds unchanged on ink;
+   only the measurement moved. */
+body.menu-locked .pill-head:not(.is-floating) {
+  background: transparent;
+  border-bottom-color: transparent;
+  color: var(--on-dark);
+}
+/* The CTA's outline stays WHITE here, but for a different reason than before.
+   Under the red overlay a --primary border was red-on-red and vanished. On ink
+   it would be legible (#ED1C2E is 4.28:1 on #111219, over the 3:1 that WCAG
+   1.4.11 asks of a control boundary) — but the overlay's hovered and current
+   items are now red, so a red-outlined CTA in the bar would compete with the
+   navigation state directly beneath it. White keeps one red meaning per screen. */
+body.menu-locked .pill-head:not(.is-floating) .pill-cta { border-color: var(--on-dark); }
+/* When the overlay is open AND the pill is floating (user scrolled before opening the
+   menu), collapse it to solid ink so it reads as part of the ink overlay rather than
+   as a glass object hovering above it. Backdrop-filter is cancelled because it would
+   blur the overlay copy underneath it — the ink is already the overlay so blurring
+   only adds cost with no visual gain. Transitions still run so the shift in and out
+   is not a hard cut. */
+body.menu-locked .pill-head.is-floating {
+  background: var(--ink) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, .10) !important;
+  box-shadow: none !important;
+  color: var(--on-dark) !important;
+}
+body.menu-locked .pill-head.is-floating .pill-cta {
+  border-color: var(--on-dark);
+}
+
+/* Floating pill once scrolled — liquid glass, in TWO tints.
+
+   LIGHT glass is the default, and it is what the bar wears over the long white
+   editorial run that is most of the site. Ink type on it clears 4.5:1
+   comfortably: 17.58:1 over white content, 7.4:1 over the #D41929 consult band.
+
+   DARK glass (.on-dark) is worn over the dark bands. This is not a preference —
+   light glass over a dark ground is arithmetic that does not work. 55% white
+   over #111219 composites to rgb(148,148,152), a dead mid-grey: the pill stops
+   reading as glass and becomes a flat grey slab sitting on the artwork, which is
+   exactly what it looked like over the hero and the corridor. Inverting the tint
+   restores the effect, because glass has to be lighter or darker than what is
+   behind it to read as a pane at all.
+
+   js/shell.js measures which band the pill's own centre is over, per frame,
+   inside the existing rAF throttle. body[data-nav="over-dark"] cannot do this —
+   it is a static page attribute and the homepage runs dark → light → red → dark.
+
+   The hairline and the shadow are structural in both tints: at 55% alpha over a
+   ground of similar lightness the pill would otherwise have no edge and simply
+   disappear. saturate() is what separates liquid glass from frosted grey — it
+   pulls colour through from behind instead of washing it out.
+
+   Radius matches --btn-r so the pill and the page's buttons share one curvature.
+   This is the one place besides buttons where the hard-edge law is relaxed. */
+.pill-head.is-floating {
+  top: 15px; left: 15px; right: 15px;
+  height: auto;
+  padding: 12px 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  color: var(--on-light);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--btn-r);
+}
+/* Over the hero, the meta strip, the corridor and the footer. */
+.pill-head.is-floating.on-dark {
+  background: var(--glass-bg-dark);
+  border-color: var(--glass-edge-dark);
+  box-shadow: var(--glass-shadow-dark);
+  color: var(--on-dark);
+}
+/* No backdrop-filter (pre-Safari 9 / older Android WebView): fall back to a
+   near-opaque surface rather than a 55% wash with nothing behind it, which would
+   leave the type sitting on whatever the page happens to be. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .pill-head.is-floating { background: var(--glass-bg-solid); }
+  .pill-head.is-floating.on-dark { background: var(--glass-bg-dark-solid); }
+}
+/* On the floating pill the CTA becomes a FILLED control instead of an outlined
+   one, in both glass tints.
+
+   This is a measured fix, not a preference. The bar's one outlined control relies
+   on its boundary to be identifiable — that is precisely why it is outlined
+   rather than tinted (WCAG 1.4.11 asks 3:1 of a control's edge). Glass of either
+   tint breaks that, because a 1.5px red ring needs a ground with contrast and the
+   glass supplies a middling one:
+
+     light glass over the #111219 hero   composites rgb(148,148,152);
+                                         #ED1C2E on it is 1.45:1 — the ring
+                                         effectively vanishes at exactly the
+                                         scroll position where the CTA matters
+     dark glass over the same hero       composites ≈rgb(23,24,32);
+                                         #ED1C2E on it is 3.9:1 — passes, but the
+                                         ring is the only thing marking a control
+                                         that now sits on a dark pane
+
+   Filling with --ar-signal-dp (#B01521) settles it: the white label is 7.06:1 on
+   that fill in every state, and the fill or its ring carries the boundary. Kept
+   identical across both tints so the control does not restyle itself mid-scroll
+   as the glass flips — a button that changes shape while you reach for it is
+   worse than one that is slightly over-specified.
+
+   The at-rest states keep the outline: over the dark hero the ring is 4.28:1 on
+   #111219, and on an opaque paper bar it is 4.37:1 on white. Both pass. */
+.pill-head.is-floating .pill-cta {
+  background: var(--ar-signal-dp);
+  border-color: var(--ar-signal-dp);
+  color: var(--primary-ink);
+  /* The boundary is carried by whichever edge has contrast on the ground behind
+     the glass, because neither works everywhere:
+
+       light glass over dark   the #B01521 fill is only 2.34:1 against the
+                               rgb(148,148,152) composite, so the WHITE ring
+                               carries the boundary at 3.02:1
+       light glass over white  the ring is white-on-white and invisible, but the
+                               fill is 7.06:1 and carries it instead
+       dark glass              the fill is 3.4:1 against the dark composite and
+                               carries it; the ring adds a visible lip
+
+     Solid white, not translucent: rgba(255,255,255,.9) composites to
+     ≈rgb(244,244,245) over the light-glass-on-hero case and drops the ring to
+     2.76:1, back under the bar. Measured, not estimated. */
+  box-shadow: 0 0 0 1px #fff;
+}
+.pill-head.is-floating .pill-cta:hover,
+.pill-head.is-floating .pill-cta:focus-visible {
+  background: var(--primary-deep);
+  border-color: var(--primary-deep);
+  color: var(--primary-ink);
+}
+/* On dark glass or full-screen menu overlay, the crimson button already carries 3.4:1+
+   contrast against the dark background. Remove the white outline ring so it reads as
+   a seamless luxury control without a harsh sticker edge. */
+.pill-head.is-floating.on-dark .pill-cta,
+.pill-head.is-floating.on-dark .pill-cta:hover,
+body.menu-locked .pill-head.is-floating .pill-cta {
+  box-shadow: none;
+}
+
+
+/* Reserve the docked bar's height so content starts below it.
+
+   `body[data-depth]` IS THE POINT OF THIS BLOCK, and it is first because it is
+   the only selector here that matches at first paint on an injected page.
+
+   :has(.pill-head) cannot match until js/chrome.js has inserted the header, so
+   on all 34 injected pages the body gained its top padding mid-load and pushed
+   the ENTIRE page down by --dock-h. Measured with layout-shift sources:
+
+     main#main  y0→64  h844→780     0.0929 to 0.2594 depending on the race
+
+   That is the real cause of piece-page CLS, and it is why the homepage — whose
+   header is static markup, so :has matches on the first pass — sat at 0.004
+   while every other page was 5 to 60 times worse. Every non-home page carries
+   <body data-depth="N"> in the markup, which is available to the very first
+   style resolution, so keying off it removes the shift rather than reserving
+   space for it.
+
+   :has and .has-pill stay for the homepage and 404.html, which have no
+   data-depth and a static header. */
+body[data-depth] { padding-top: var(--dock-h); }
+body:has(.pill-head) { padding-top: var(--dock-h); }
+body.has-pill { padding-top: var(--dock-h); }
+/* ...except when the bar is transparent over a dark hero, where reserving
+   height would open a paper-coloured gap above the artwork. #hero carries
+   the same --dock-h in its own padding-block-start, so the headline still
+   clears the bar. */
+body[data-nav="over-dark"]:has(.pill-head),
+body[data-nav="over-dark"].has-pill { padding-top: 0; }
+
+/* The other half of a fixed header, and the half that was missing.
+   `padding-top` above stops the bar from covering the TOP of the document.
+   It does nothing for anything scrolled to later: the browser aligns an
+   anchor target to y=0, which is underneath the bar. Before this rule the
+   casualties were the two places it matters most —
+
+     /piece/*   "ESTIMATED PRICE ৳75,000" landed behind the bar
+     /cart/     the qty stepper and Remove controls did the same
+
+   html{scroll-behavior:smooth} in base.css makes it worse, not better: the
+   element visibly glides to a resting position that is already occluded.
+
+   [id] rather than :target, because this has to apply to programmatic
+   scrollIntoView() (which the configurator and cart both use) as well as to
+   hash navigation. +12px so the target clears the hairline border-bottom
+   instead of sitting flush against it. */
+[id] { scroll-margin-top: calc(var(--dock-h) + 12px); }
+
+.pill-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: .95rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: currentColor;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border-radius: 5px;
+  position: relative;
+}
+
+.hfm-mark {
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+}
+.hfm-mark-joint {
+  fill: currentColor;
+  transition: fill var(--dur) var(--ease);
+}
+.hfm-mark-peg {
+  fill: var(--primary);
+  transition: fill var(--dur) var(--ease);
+}
+.pill-head.is-floating.on-dark .hfm-mark-peg,
+body[data-nav="over-dark"] .pill-head:not(.is-floating) .hfm-mark-peg,
+body.menu-locked .hfm-mark-peg {
+  fill: var(--primary-lite);
+}
+
+/* Wordmark → monogram on narrow screens.
+   The full wordmark is 250.6px at 375: twenty-one nowrap characters carrying
+   .16em of tracking, which alone contributes ~51px. Because the line cannot
+   wrap, its min-content width equals its full width, and min-width:auto stops
+   flex-shrink from touching it — so the header's flex line measured 250.6 + 16
+   gap + 80 utilities = 346.6 inside a 324px content box. justify-content:
+   space-between cannot manufacture negative space, so the 22.6px overrun spilled
+   rightward and put #dots-btn at 364.5 in a 360px viewport: a 44px tap target
+   with its right edge clipped off the screen.
+
+   Shrinking the type instead would need ~13.8px to fit, which is smaller than
+   the 15.2px nav links it sits beside. The monogram is what the reference bar
+   uses anyway, and it is the form the design sketch specified.
+
+   420px, not the 900px breakpoint that hides .plink/.pill-cta/.pill-lang: with
+   those gone the utilities are only 80px wide, so the full wordmark still fits
+   comfortably from ~383px up. Swapping at 900 would drop the name on tablets
+   that have ample room for it.
+
+   The a11y name lives on the anchor's aria-label, so it stays "Heaven Furniture
+   Mart" at every width — display:none would otherwise take the words out of the
+   accessibility tree along with the pixels. */
+.pill-brand .pb-mono { display: none; }
+@media (max-width: 600px) {
+  .pill-brand .pb-long { display: none; }
+  .pill-brand .pb-mono { display: inline; }
+}
+.pill-nav { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+
+.plink a {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-body);
+  /* 14px, not 11.5px: the buying audience is 40+, where presbyopia makes
+     all-caps below ~14px measurably slower to read. Tracking eased from
+     .14em so the wider caps still read as one word. */
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: currentColor;
+  text-decoration: none;
+  padding: 9px 11px;
+  border-radius: 5px;
+  transition: opacity .2s cubic-bezier(.645,.045,.355,1);
+  opacity: .9;
+}
+.plink a::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: currentColor;
+  opacity: 0;
+  border-radius: 5px;
+  transform: scale(.9);
+  transition: opacity .2s cubic-bezier(.645,.045,.355,1), transform .2s cubic-bezier(.645,.045,.355,1);
+}
+.plink a:hover, .plink a:focus-visible { opacity: 1; }
+.plink a:hover::before { opacity: .1; transform: scale(1); }
+
+/* Current page: full-opacity label plus a red rule beneath it.
+   The old skin coloured the label itself with --brass; at .72rem that is
+   body-copy size, and red-on-dark only reaches 4.33:1. Keeping the label at
+   the surface's own text colour and moving the signal into a rule passes
+   contrast and matches the reference's own indicator. */
+.plink a[aria-current="page"] { opacity: 1; }
+.plink a[aria-current="page"]::after {
+  content: "";
+  position: absolute; left: 11px; right: 11px; bottom: 2px;
+  height: 2px; background: var(--primary);
+}
+
+/* AR CTA — outlined at rest, filled on hover. The label is white/ink rather
+   than red because red text at this size fails 4.5:1 on both surfaces; the red
+   lives in the 1.5px border, which only has to clear the 3:1 UI bar. */
+.pill-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-left: .6rem;
+  padding: 9px 15px;
+  border: 1.5px solid var(--primary);
+  /* Rounded to --btn-r-sm so the bar's one outlined control shares curvature
+     with .btn--ghost, the outline button it is a small cousin of. */
+  border-radius: var(--btn-r-sm);
+  color: currentColor;
+  font-family: var(--font-body);
+  font-size: .875rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .2s cubic-bezier(.645,.045,.355,1), color .2s cubic-bezier(.645,.045,.355,1),
+              border-color .2s cubic-bezier(.645,.045,.355,1);
+}
+.pill-cta:hover, .pill-cta:focus-visible {
+  background: var(--primary-deep);
+  border-color: var(--primary-deep);
+  color: var(--primary-ink);
+}
+.pill-cta svg { width: 20px; height: 20px; }
+
+/* ---- Right-hand utility cluster ------------------------------------------
+   The reference's bar ends with small utility affordances. Search is real
+   (js/search.js filters data/pieces.js) and so is the language pill — it
+   drives setLang() in data/i18n.js. Both are 38px boxes so the glyphs can
+   sit at 21px without crowding. ----------------------------------------- */
+.pill-util {
+  position: relative;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  background: none; border: 0; border-radius: 5px;
+  color: currentColor; cursor: pointer;
+}
+.pill-util::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  border-radius: 5px; transform: scale(.9);
+  transition: opacity .2s cubic-bezier(.645,.045,.355,1), transform .2s cubic-bezier(.645,.045,.355,1);
+}
+.pill-util:hover::before { opacity: .1; transform: scale(1); }
+.pill-util svg { width: 21px; height: 21px; }
+.pill-lang {
+  font-family: var(--sans);
+  /* Bengali carries conjuncts and matras above and below the baseline, so it
+     needs more room than Latin at equal legibility — this was the smallest
+     text in the bar. Full opacity: it is a control, not an indicator. */
+  font-size: .8125rem; font-weight: 700; letter-spacing: .06em;
+  opacity: 1; padding: 5px 9px; white-space: nowrap;
+  background: none; border: 1px solid var(--hair-strong);
+  border-radius: 4px; color: inherit; cursor: pointer;
+  transition: opacity var(--dur) var(--ease), border-color var(--dur) var(--ease),
+              background var(--dur) var(--ease);
+}
+.pill-lang:hover {
+  opacity: 1; border-color: var(--primary);
+}
+.pill-lang:focus-visible {
+  outline: 2px solid var(--primary); outline-offset: 2px;
+}
+
+/* Overlay menu language button — primary button at the top of the menu */
+.ov-item-lang {
+  margin-bottom: clamp(0.5rem, 2vh, 1.5rem);
+}
+.ov-lang-btn {
+  display: inline-block;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: .5vh 2vw;
+  font-family: "Jost", var(--display), "Hind Siliguri", sans-serif;
+  font-weight: 200;
+  font-size: clamp(3.2rem, 15vh, 11rem);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  cursor: pointer;
+  transition: color .25s cubic-bezier(.645,.045,.355,1);
+  line-height: inherit;
+}
+.ov-lang-btn:hover,
+.ov-lang-btn:focus-visible {
+  color: var(--primary-lite);
+}
+.ov-lang-btn .ovi {
+  position: relative;
+  display: inline-block;
+  will-change: transform;
+}
+.ov-lang-btn .ovi::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: .08em;
+  height: 3px;
+  background: var(--primary);
+}
+
+/* ---- The 2x2 dot menu button --------------------------------------------- */
+.dots-btn {
+  position: relative;
+  width: 38px; height: 38px;
+  margin-left: .4rem;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: 5px;
+  color: currentColor;
+}
+.dots-btn::before {               /* hover pill, same as links */
+  content: "";
+  position: absolute; inset: 0;
+  background: currentColor;
+  opacity: 0;
+  border-radius: 5px;
+  transform: scale(.9);
+  transition: opacity .2s cubic-bezier(.645,.045,.355,1), transform .2s cubic-bezier(.645,.045,.355,1);
+}
+.dots-btn:hover::before { opacity: .1; transform: scale(1); }
+.dots-inner {
+  position: relative;
+  width: 16px; height: 16px;
+  transition: transform .2s cubic-bezier(.645,.045,.355,1);
+}
+.dots-inner i {
+  position: absolute;
+  width: 6px; height: 6px;
+  background: currentColor;
+  border-radius: 1px;
+  transition: transform .2s cubic-bezier(.645,.045,.355,1), background .2s;
+}
+.dots-inner i:nth-child(1) { top: 0;    left: 0; }
+.dots-inner i:nth-child(2) { top: 0;    right: 0; }
+.dots-inner i:nth-child(3) { bottom: 0; left: 0; }
+.dots-inner i:nth-child(4) { bottom: 0; right: 0; }
+.dots-btn:hover .dots-inner i:nth-child(1) { transform: translate3d(-25%, -25%, 0); }
+.dots-btn:hover .dots-inner i:nth-child(2) { transform: translate3d(25%, -25%, 0); }
+.dots-btn:hover .dots-inner i:nth-child(3) { transform: translate3d(-25%, 25%, 0); }
+.dots-btn:hover .dots-inner i:nth-child(4) { transform: translate3d(25%, 25%, 0); }
+/* Open: grid rotates 90deg and dots collapse to an X in the centre. The
+   overlay is red underneath, so the dots go white regardless of which bar
+   state they were in. */
+.dots-btn[aria-expanded="true"] { color: var(--on-dark); }
+.dots-btn[aria-expanded="true"] .dots-inner { transform: rotate(90deg); }
+.dots-btn[aria-expanded="true"] .dots-inner i:nth-child(1) { transform: translate3d(4px, 4px, 0) rotate(45deg); }
+.dots-btn[aria-expanded="true"] .dots-inner i:nth-child(2) { transform: translate3d(-4px, 4px, 0) rotate(-45deg); }
+.dots-btn[aria-expanded="true"] .dots-inner i:nth-child(3) { transform: translate3d(4px, -4px, 0) rotate(-45deg); }
+.dots-btn[aria-expanded="true"] .dots-inner i:nth-child(4) { transform: translate3d(-4px, -4px, 0) rotate(45deg); }
+
+/* ---- Full-screen overlay menu --------------------------------------------
+   The ground is --ovmenu-bg, which is now rgba(17,18,25,.97) — INK, not the red
+   field this shipped with. The reasoning is recorded at the token in
+   css/tokens.css; the short version is that this was the only full-bleed red
+   surface on a site whose other two full-screen overlays (search, AR coach) are
+   both ink, and red is meant to be the accent.
+
+   White giant type on that ground is 18.4:1, so the corner labels no longer need
+   the deep/bright red calculation the old comment carried. */
+.ovmenu {
+  position: fixed;
+  inset: 0;
+  z-index: 80;                     /* below the pill bar so it stays visible */
+  background: var(--ovmenu-bg);
+  color: var(--on-dark);
+  visibility: hidden;
+  overflow: hidden;
+  /* Slides up from below the viewport: slow, smooth, one continuous glide. */
+  transform: translate3d(0, 100%, 0);
+  transition: transform .6s cubic-bezier(.22, .61, .36, 1),
+              visibility 0s linear .6s;
+}
+.ovmenu.-open {
+  visibility: visible;
+  transform: translate3d(0, 0, 0);
+  transition: transform .6s cubic-bezier(.22, .61, .36, 1);
+}
+body.menu-locked { overflow: hidden; }
+
+/* corner micro-labels, decoded by scramble on open */
+.ov-corner {
+  position: fixed;
+  font-family: var(--font-body);
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  line-height: 1.7;
+  opacity: 0;
+  transition: opacity .5s ease .25s;
+}
+.ovmenu.-open .ov-corner { opacity: .85; }
+.ov-tl { top: 102px;  left: 26px; }
+.ov-tr { top: 102px;  right: 26px; text-align: right; }
+.ov-bl { bottom: 26px; left: 26px; }
+.ov-br { bottom: 26px; right: 26px; text-align: right; }
+.ov-corner a { color: inherit; text-decoration-color: rgba(255, 255, 255, .45); }
+
+/* the oversized giant-item list */
+.ovlist-wrap {
+  position: absolute;
+  inset: 100px 0 0;
+  display: flex;
+  justify-content: center;
+}
+.ovlist {
+  list-style: none;
+  margin: 0; padding: 0;
+  text-align: center;
+  will-change: transform;
+}
+.ovlist li { line-height: .92; }
+/* Extra vertical padding makes the list deliberately taller than the
+   viewport even with few items, so pointer-scrubbing has range. */
+.ovlist { padding-block: 4vh 10vh; }
+.ovlist a {
+  display: inline-block;
+  text-decoration: none;
+  padding: .5vh 2vw;
+  font-family: var(--display);     /* was hardcoded 'Anton' — the one place
+                                      in the codebase the token was bypassed */
+  font-weight: 200;
+  font-size: clamp(3.4rem, 16.5vh, 12.5rem);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  transition: color .25s cubic-bezier(.645,.045,.355,1);
+}
+/* Hover and focus take the SIGNAL, which is red's actual job on this site — the
+   nav's current-page rule, .eyebrow--rule and the step numerals all do the same.
+
+   --primary-lite (#EC4B53), not --primary: measured on --ink, #ED1C2E is 4.28:1
+   and #D41929 is worse, while #EC4B53 is 5.04:1. That is the third step of the
+   red existing for exactly this case — small-to-large red text on a dark ground.
+
+   It replaces `color: var(--ink)`, which inverted the item to near-black at
+   3.53:1 on the old red field. That technically cleared the 3:1 large-text bar,
+   but at 148px an inversion that dark reads as a hole punched in the screen
+   rather than a highlight — which is how it was reported. */
+.ovlist a:hover,
+.ovlist a:focus-visible { color: var(--primary-lite); }
+
+/* The overlay marks location the way the bar does. Without this the menu is the
+   one place on the site that will not tell you which page you are on, which is
+   odd for the component whose whole job is navigation. */
+.ovlist a[aria-current="page"] { color: var(--primary-lite); }
+.ovlist a[aria-current="page"] .ovi { position: relative; }
+.ovlist a[aria-current="page"] .ovi::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: .08em;
+  height: 3px; background: var(--primary);
+}
+.ovlist .ovi { display: inline-block; will-change: transform; }
+
+/* ---- Search overlay (js/search.js) ---------------------------------------
+   Above the pill bar, because the bar would otherwise cover the input. */
+.psearch {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column;
+  padding: clamp(1.2rem, 5vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  background: rgba(17, 18, 25, .96);
+  color: var(--on-dark);
+  visibility: hidden; opacity: 0;
+  transition: opacity var(--dur) var(--ease), visibility 0s linear var(--dur);
+}
+@supports (backdrop-filter: blur(10px)) {
+  .psearch { background: rgba(17, 18, 25, .88); backdrop-filter: blur(18px); }
+}
+.psearch.-open { visibility: visible; opacity: 1; transition: opacity var(--dur) var(--ease); }
+.psearch-top {
+  flex: none;
+  display: flex; align-items: center; gap: 1rem;
+  width: min(100%, 760px); margin-inline: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, .3);
+}
+.psearch input {
+  flex: 1; min-width: 0;
+  appearance: none; -webkit-appearance: none;
+  background: transparent; border: 0; border-radius: 0; color: var(--on-dark);
+  font-family: var(--display); font-weight: 200;
+  font-size: clamp(1.5rem, 5vw, 2.6rem);
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: .4em 0;
+}
+.psearch input::-webkit-search-cancel-button { display: none; }
+.psearch input::placeholder { color: rgba(255, 255, 255, .38); }
+.psearch input:focus { outline: none; }
+.psearch-top:focus-within { border-bottom-color: var(--primary); }
+.psearch-close {
+  flex: none; width: 44px; height: 44px;
+  display: grid; place-items: center;
+  background: none; border: 0; color: var(--on-dark); cursor: pointer;
+}
+.psearch-close svg { width: 22px; height: 22px; }
+.psearch-count {
+  flex: none;
+  width: min(100%, 760px); margin: .9rem auto 0;
+  font-size: var(--fs-eyebrow); font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--on-dark-mute);
+}
+/* min-height:0 is what actually lets this scroll inside the flex column —
+   without it a flex item refuses to shrink below its content height. */
+.psearch-results {
+  flex: 1; min-height: 0;
+  list-style: none; margin: 1.2rem auto 0; padding: 0 0 2rem;
+  width: min(100%, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.psearch-results a {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .7rem 0; text-decoration: none; color: var(--on-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+.psearch-results img {
+  flex: none; width: 56px; height: 56px; object-fit: contain;
+  background: rgba(255, 255, 255, .06);
+}
+.psearch-results b {
+  font-family: var(--display); font-weight: 300; font-size: 1.05rem;
+  letter-spacing: .05em; text-transform: uppercase;
+  transition: color var(--dur) var(--ease);
+}
+.psearch-results .ps-txt { min-width: 0; }
+.psearch-results .ps-txt span {
+  display: block; font-size: var(--fs-small); color: var(--on-dark-mute);
+}
+/* Both of these are 16.8px/300 red text on the dark panel, so they take
+   --primary-lite (5.04:1), not --primary (4.28:1 — fails body copy). */
+.psearch-results a:hover b, .psearch-results a:focus-visible b { color: var(--primary-lite); }
+.psearch-results mark { background: none; color: var(--primary-lite); font: inherit; }
+.psearch-empty { padding: 1.4rem 0; color: var(--on-dark-mute); }
+
+/* ---- THE BAR HAS THREE TIERS, NOT TWO ------------------------------------
+   The full bar needed about 1160px at the old 11.5px sizing and the links used
+   to reappear at 901px, so
+   between those two widths it overflowed a viewport that has `overflow-x: hidden`
+   — the excess was CLIPPED, not scrollable. Measured at 920px: 216px of overflow
+   with FIVE controls off-screen, and among them the cart, the search button and
+   the menu button. A visitor on a 1024px laptop could not reach their own cart.
+
+   Measured widths at the point of failure: brand 251, five links 471, AR CTA 188,
+   search 33, cart 32, EN 21, menu 33, nine gaps 50, header padding 60. The links
+   and the EN marker are 492 of that, and dropping them leaves 627px — which fits
+   from 901px with room to spare. Squeezing instead was tried on paper and does not
+   reach: even icon-only CTA plus tighter padding and gaps saves 234px against the
+   261px needed, and it would mute the site's flagship affordance to get there.
+
+     up to 900px    brand + search + cart + menu; the overlay carries AR and rooms
+     901 - 1359     brand + AR CTA + search + cart + menu; the overlay carries rooms
+     1360px and up  everything
+
+   The middle tier keeps the AR CTA — which fits easily — and restores the
+   three controls that were previously unreachable. Rooms move to the overlay menu,
+   exactly as they already do below 900px.
+
+   The 1360px ceiling is measured, not chosen: at 14px the nav cluster is 989px
+   wide, and below a 1360px viewport it either spills past the header's right
+   padding or closes to under 24px of the wordmark. Between 1200 and 1360 the
+   overlay menu carries the rooms, where the links render far larger than a
+   cramped bar could — which is the point of the 14px sizing in the first place. */
+@media (max-width: 1359px) {
+  .pill-nav .plink, .pill-lang { display: none; }
+}
+
+/* mobile / short screens: items must fit, no scrubbing */
+@media (max-width: 900px) {
+  .pill-cta { display: none; }
+  /* The wrap clears .ov-tl, which is TWO lines of .7rem/1.7 — at the old
+     92px it started at exactly the label's top edge and the giant type ran
+     straight through the address. */
+  .ovlist-wrap { inset: 148px 0 70px; overflow-y: auto; display: block; }
+  .ovlist { padding: 1rem 0 3rem; }
+  /* Sized against WIDTH, not height. 9.5vh on a 812px-tall phone resolves to
+     ~77px, at which "COLLECTIONS" is ~506px wide and blows through a 375px
+     viewport — clipped at both edges, with a horizontal scrollbar on the
+     whole document. The longest label is 11 characters, and Jost 200 caps
+     average ~0.66em including the .04em tracking, so 11 x 0.66em = 7.26em
+     has to fit the ~96vw left after the item's 2vw side padding: 11.5vw is
+     that limit with a little margin. */
+  .ovlist a,
+  .ov-lang-btn { font-size: clamp(1.9rem, 11.5vw, 5.5rem); }
+  .ov-tr, .ov-bl { display: none; }
+  .ov-tl { top: 92px; left: 20px; }
+  .ov-br { right: 20px; bottom: 20px; }
+}
+
+/* ---- Reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .pill-head { animation: none; transition: none; }
+  .ovmenu { transform: none !important; transition: opacity .2s linear, visibility 0s; opacity: 0; }
+  .ovmenu.-open { opacity: 1; }
+  .ovmenu.-open,
+  .plink a::before, .dots-btn::before, .pill-util::before,
+  .dots-inner, .dots-inner i,
+  .ov-corner, .ovlist a { transition: none !important; }
+  .ovlist { transform: none !important; }
+  .ovlist-wrap { overflow-y: auto; }
+}
+
+/* ---- The cart button ----------------------------------------------------
+   Sits in the utility cluster between search and the language indicator: it is
+   an action, so it belongs with the other actions rather than after the passive
+   "EN".
+
+   The accessible name is an aria-label that js/order.js keeps in sync via
+   [data-cart-label] ("Cart is empty" / "Cart, 3 pieces"). It is an ATTRIBUTE and
+   not a clipped text node on purpose: the first version used a text node, and
+   paintCartCount() writing textContent deleted the SVG and the badge along with
+   it — the same defect scrambleEl() had in js/menu.js. An attribute cannot
+   flatten child markup, and it needs no clipping hack. */
+.pill-cart { text-decoration: none; overflow: visible; }
+.pill-cart svg { width: 21px; height: 21px; }
+
+/* The badge overlaps the icon's top-right corner. --primary-deep because it
+   carries white 11px digits: 5.29:1, where the bright red would be 4.37:1. */
+.cart-count {
+  position: absolute;
+  top: -2px; right: -4px;
+  min-width: 19px; height: 19px;
+  padding: 0 5px;
+  display: grid; place-items: center;
+  background: var(--primary-deep); color: var(--primary-ink);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: .6875rem; font-weight: 800; line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cart-count[hidden] { display: none; }

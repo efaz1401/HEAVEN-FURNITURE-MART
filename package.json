@@ -1,0 +1,16 @@
+{
+  "name": "heaven-furniture-mart",
+  "private": true,
+  "type": "module",
+  "description": "Static site. This file adds NO build step — it exists so Node resolves the site's .js files as the ES modules they already are. Without it, `.js` loads as CommonJS and importing data/pieces.js throws on its first `export`, which is why every _ref/verify-*.mjs script had to copy the modules into a temp dir with .mjs extensions first. Nothing here ships: the host serves static files and never reads package.json.",
+  "scripts": {
+    "serve": "node serve.mjs",
+    "test": "node --test tests/",
+    "build": "node scripts/build-deploy.mjs",
+    "build:css": "node scripts/build-critical-css.mjs"
+  },
+  "devDependencies": {
+    "lighthouse": "^12.8.2",
+    "puppeteer-core": "^24.43.1"
+  }
+}

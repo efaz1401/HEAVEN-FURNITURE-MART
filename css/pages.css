@@ -1,0 +1,4044 @@
+/* ==========================================================================
+   Heaven Furniture Mart — page-level components
+   ========================================================================== */
+
+/* ==========================================================================
+   HERO — a product on a stage, not a video band.
+
+   What this replaced: the band used to be EXACTLY the aspect ratio of a
+   background video (16/9, or 9/16 on portrait) so `object-fit: contain` could
+   fit it edge-to-edge. That shape came from the file, not from the content, and
+   on a short laptop window it pushed the CTA below the fold. The video is gone
+   (see §8 in index.html and js/hero.js); the hero is now a GLB rendered on a
+   transparent canvas over a cut-out still (js/hero3d.js).
+
+   So the band is sized by its CONTENT instead: min-height in svh, which on
+   mobile browsers is the *small* viewport — the height you get with the URL bar
+   showing — so the composition never jumps when that bar retracts.
+   ========================================================================== */
+#hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  min-height: min(92svh, 940px);
+  display: grid;
+  align-items: center;
+  /* --dock-h ALONE is not enough. nav.css zeroes the body's top padding on
+     data-nav="over-dark" pages so the bar can float over this section, which
+     makes clearing it THIS element's job. The clamp is the breathing room that
+     stops the eyebrow landing on the bar's hairline at 375px. */
+  padding-block: calc(var(--dock-h, 62px) + clamp(1.25rem, 5vh, 3rem))
+                 clamp(3rem, 9vh, 6rem);
+}
+
+/* The ghost year, sitting behind everything. --ghost-y is written by the
+   parallax loop in js/home.js and is simply absent under reduced motion, where
+   the fallback 0 leaves the word parked. */
+.hero-ghost {
+  position: absolute;
+  left: 50%; top: 46%;
+  transform: translate(-50%, -50%) translateY(var(--ghost-y, 0px));
+  /* On ink the ghost has to be a LIGHTENED ink rather than --ghost (#E9E9E9),
+     which would read as near-white type. #1E2029 is 1.11:1 on #111219 —
+     texture, deliberately below the threshold where it competes with copy. */
+  color: #1E2029;
+  /* font-size comes from .ghost-type (--fs-ghost) — one ghost scale sitewide. */
+  line-height: .8;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, .92fr); }
+}
+
+.hero-body { position: relative; }
+.hero-body h1 {
+  font-size: var(--fs-hero);
+  /* NOT 800. The re-skin's display voice is thin and wide, and this rule was
+     the one place heavy enough to defeat the base h1 weight — leaving the
+     site's largest headline in a weight nothing else uses. */
+  font-weight: 200;
+  line-height: .95;
+  margin-bottom: 1rem;
+  max-width: 20ch;
+}
+.hero-body .lead { max-width: 44ch; margin-bottom: 1.75rem; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+
+/* ---- The stage -----------------------------------------------------------
+   Two rows: the product, then its caption. The still and the model share row 1
+   so the swap is a cross-fade with no reflow — the same trick as the piece
+   page's .stage — while the caption sits in row 2, clear of the silhouette and
+   of the drag that turns the model. */
+.hero-stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  isolation: isolate;
+}
+.hero-stage > .hero-still,
+.hero-stage > model-viewer {
+  grid-area: 1 / 1;
+  width: 100%;
+  /* height:auto is not redundant. model-viewer's own :host rule sets
+     `width:300px; height:150px` like a bare <canvas>, and an explicit height
+     beats aspect-ratio — so without this the model renders in a 150px-tall
+     letterbox with the piece a thumbnail in the middle of it. */
+  height: auto;
+  aspect-ratio: 1 / 1;
+  max-height: min(64svh, 620px);
+  margin-inline: auto;
+}
+/* ==========================================================================
+   MILESTONES — five dated achievements on the dark band.
+
+   This section exists because the heritage it replaced was invented. The site led
+   with "hand-carved since 1998" and a 28-year age computed from it, against a
+   company founded in 2020. A young business cannot borrow age, but it can show a
+   showroom, a trade fair, a chamber membership and a national recognition — so the
+   strip trades one unverifiable number for five checkable dates.
+
+   Laid out on hairlines rather than in cards, like the numbers strip above it: the
+   year is the loud element and the achievement is quiet beside it.
+   ========================================================================== */
+.stones { padding-block: clamp(3rem, 7vw, 5.5rem); }
+/* 62ch rather than the .lead default: this paragraph sits directly above a
+   five-column timeline, and at full measure the two read as one run-on block. */
+.stone-intro { max-width: 62ch; margin-top: 1.1rem; }
+.stone-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 0;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.stone-row li {
+  display: grid;
+  gap: .5rem;
+  padding: 1.4rem 1.5rem 1.4rem 0;
+  /* A leading rule per cell, so the row reads as a timeline rather than as five
+     separate facts. The last cell's rule is the row's own right edge. */
+  border-top: var(--edge);
+}
+.stone-row li b {
+  font-family: var(--display);
+  font-weight: 200;
+  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--on-dark);
+}
+.stone-row li span {
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--on-dark-mute);
+  max-width: 22ch;
+}
+/* The most recent milestone is the one that matters most to a customer deciding
+   today, so the last cell keeps the signal red. */
+.stone-row li:last-child b { color: var(--primary-lite); }
+
+/* model-viewer ships a default progress bar and an AR-button slot in its shadow
+   DOM. On the hero those painted a flat black band across the top edge and a light
+   grey bar at the bottom the moment the model mounted — visible in the live state
+   only, which is exactly how they were spotted. The hero has its own busy state and
+   no AR button, so both are hidden. */
+.hero-stage > model-viewer::part(default-progress-bar) { display: none; }
+.hero-stage > model-viewer::part(default-ar-button) { display: none; }
+
+/* ==========================================================================
+   THE TURNTABLE — the hero's invitation to load the 3D model.
+
+   The model used to mount itself. Measured on the deployed site that was 9.5s of
+   LCP, 1,738ms of blocking time and 1.2 MB per visit, because model-viewer runs a
+   continuous WebGL render loop: 212 of the page's 215 long tasks. Blocking it took
+   LCP from 11,284ms to 1,728ms. So it is opt-in, and this is the opt-in.
+
+   A hairline ellipse sitting where the chair's baked shadow already falls, with a
+   red arrow on its curve. It reads as a photographer's turntable, which needs no
+   explanation, and it is a hairline rather than a box — the site's own language.
+
+   THREE STATES, ONE ELEMENT. `data-state` on the button is the whole state
+   machine: rest -> busy -> live. On `live` the ellipse stops being a control and
+   becomes the ground the model stands on, so the button transforms into the thing
+/* ==========================================================================
+   HERO 3D GESTURE INVITATION
+   Directs visitors to tap/press the 3D model subject to load the GLB.
+   Centered directly over the chair in cell 1/1.
+   ========================================================================== */
+.hero-gesture {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: center;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.65rem 1.35rem 0.65rem 0.95rem;
+  background: rgba(20, 20, 20, 0.25);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: var(--on-dark, #fff);
+  cursor: pointer;
+  font-family: var(--display, 'Cinzel', serif);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  margin-top: -1.5rem;
+  min-height: 48px;
+  user-select: none;
+  transition: opacity var(--dur-md, 0.25s) var(--ease),
+              transform var(--dur-md, 0.25s) var(--ease),
+              border-color var(--dur-sm, 0.18s) var(--ease),
+              background-color var(--dur-sm, 0.18s) var(--ease);
+}
+
+.hero-gesture:hover {
+  background: rgba(30, 30, 30, 0.40);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.hero-gesture:focus-visible {
+  outline: 2px solid var(--primary-lite, #ff6b7a);
+  outline-offset: 4px;
+}
+
+.hero-gesture:active {
+  transform: scale(0.96);
+}
+
+.hero-gesture-icon {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-gesture-pulse {
+  position: absolute;
+  top: 6px;
+  left: 16px;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(237, 28, 46, 0.35);
+  border: 1.5px solid var(--primary, #ed1c2e);
+  box-shadow: 0 0 12px rgba(237, 28, 46, 0.85);
+  pointer-events: none;
+  animation: hero-tap-pulse 2s cubic-bezier(0.15, 0.8, 0.25, 1) infinite;
+}
+
+.hero-gesture-svg {
+  position: relative;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  animation: hero-hand-press 2s ease-in-out infinite;
+}
+
+@keyframes hero-tap-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  70%, 100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+}
+
+@keyframes hero-hand-press {
+  0%, 100% { transform: translateY(0) scale(1); }
+  15% { transform: translateY(-4px) scale(1.06); }
+  35% { transform: translateY(2px) scale(0.94); }
+  55% { transform: translateY(0) scale(1); }
+}
+
+/* Hide when busy, live, failed or in 3D mode */
+.hero-gesture.is-hidden,
+.hero-gesture[data-state="busy"],
+.hero-gesture[data-state="live"],
+.hero-gesture[data-state="failed"],
+.hero-stage[data-mode="3d"] .hero-gesture {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: scale(0.9) translateY(6px);
+}
+
+/* Bengali typography for the gesture badge */
+html[lang="bn"] .hero-gesture-label {
+  font-family: var(--font-bengali, 'Hind Siliguri', sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-gesture-pulse { animation: none !important; opacity: 0.6; transform: translate(-50%, -50%) scale(1.4); }
+  .hero-gesture-svg { animation: none !important; }
+  .hero-gesture:hover { transform: none; }
+}
+
+.hero-turn {
+  /* THE SAME CELL AS THE PHOTOGRAPH, pinned to its base. Row 2 was tried first and
+     is wrong twice over: .hero-note already occupies row 2, so the grid auto-placed
+     the two side by side (measured at 390px: button at x40-182, caption at
+     x203-370, the caption shoved into a second column); and it put the disc BELOW
+     the image instead of under the chair's feet, so the chair floated above its own
+     turntable. At 390px it also pushed the label to y=865 in an 844px viewport —
+     below the fold, which is to say invisible (and behind the mobile dock, which
+     the page carried at the time).
+
+     In cell 1/1 with align-self: end the disc lands on the chair's contact shadow,
+     which is what makes it read as ground rather than as a ring. It also means the
+     disc is already in the right place when model-viewer mounts into the same
+     cell — the control becomes the floor without moving. */
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: center;
+  /* Clear of the image's own bottom edge so the label has dark ground under it. */
+  padding-bottom: clamp(2px, 1.2vw, 10px);
+  display: grid;
+  justify-items: center;
+  gap: .55rem;
+  margin-top: -.4rem;
+  padding: .35rem .9rem 0;
+  background: none;
+  border: 0;
+  color: var(--on-dark);
+  cursor: pointer;
+  font: inherit;
+  /* The whole photograph is the target on pointer devices — see .hero-stage:has()
+     below — but the button itself still has to clear 44px on its own for anyone
+     tabbing to it. */
+  min-height: 44px;
+}
+
+/* The turntable disc. An ellipse, not a circle: it is a disc seen at the hero's
+   own viewing angle, which is what makes it read as a floor rather than a ring. */
+.hero-turn-disc {
+  position: relative;
+  display: block;
+  width: clamp(96px, 13vw, 148px);
+  aspect-ratio: 2.6 / 1;
+  border: 1px solid var(--hair-strong);
+  border-radius: 50%;
+  /* Lifted from .32 after review: at that value the hairline was discernible but
+     not noticeable, which for an invitation is the same as absent. .46 still reads
+     as a hairline against the chair rather than a drawn ring. */
+  border-color: rgba(255, 255, 255, .46);
+  transition: border-color var(--dur-md) var(--ease), transform var(--dur-md) var(--ease);
+}
+
+/* The arrow rides the ellipse's rim. Positioned at the right-hand extreme, then
+   rotated around the disc's centre — so one `rotate` follows the curve exactly
+   and no path maths is needed. */
+/* THE ORBIT IS SQUASHED, BECAUSE ROTATION ALONE TRACES A CIRCLE.
+   Two earlier attempts were wrong in different ways. `margin-top: -50%` first: a
+   percentage margin resolves against the containing block's WIDTH even for
+   margin-top, so on this 2.6:1 disc it computed to -73px instead of -28px and the
+   dot sat 45px above the rim. Fixing that to `inset: 0` put the dot on the rim at
+   rest — but rotating a 2.6:1 box still sweeps a CIRCLE of radius half its width,
+   so the moment the lap started the dot climbed off the hairline and floated over
+   the chair's base arms. Correct at 0deg, wrong everywhere else.
+
+   So the path is built in two layers: this element squashes the whole coordinate
+   space to the disc's own ratio, and .hero-turn-arrow rotates a SQUARE inside it.
+   A rotation composed with a scaleY is exactly an ellipse. The dot then counter-
+   scales so it stays round rather than being flattened with its own path. */
+.hero-turn-orbit {
+  position: absolute;
+  inset: 0;
+  transform: scaleY(0.3846);          /* 1 / 2.6, the disc's aspect-ratio */
+}
+.hero-turn-arrow {
+  position: absolute;
+  /* Square, and as wide as the disc: the rotation radius is half the disc's width,
+     which after the parent's scaleY lands exactly on the rim at every angle. */
+  top: 50%;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  transform-origin: 50% 50%;
+}
+.hero-turn-arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  /* A CIRCLE, and no counter-scale. scaleY(2.6) was tried to keep the dot round on
+     screen and it is wrong: the dot is a child of the rotating box, so its own Y
+     axis rotates with it — at 90deg that scale stretched the dot along the screen's
+     horizontal instead of undoing the vertical squash. Measured with the lap paused
+     at four angles: round and on the rim at 0 and 180deg, a 7-character smear
+     sitting three rows off the hairline at 90 and 270deg.
+     A circle is the one shape rotation cannot distort. Squashed by the parent it
+     renders as the SAME small flat ellipse at every angle — which is also what a
+     marker lying on a turntable should look like in this perspective. */
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 5px rgba(237, 28, 46, .2);
+}
+
+.hero-turn-label {
+  font-family: var(--display);
+  /* 400/.78rem, up from 300/.72rem. Reviewed three times and the caption below —
+     a red "In view" tag plus the piece name — kept taking the eye first. The
+     invitation now carries slightly more weight than the thing it sits above. */
+  font-weight: 400;
+  font-size: .78rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  /* WHITE, not --on-dark-mute. At muted grey this was the faintest text in the
+     hero — quieter than the "In view / Executive Chair · Black" caption directly
+     beneath it — so the eye landed on the caption and skipped the invitation. The
+     one element whose entire job is to be pressed cannot be the least visible
+     thing on screen. */
+  color: var(--on-dark);
+  /* Reserved, so the row does not collapse when the label fades in the live state
+     and pull the disc down onto the caption. */
+  min-height: 1.15em;
+  transition: color var(--dur-md) var(--ease);
+}
+
+/* ---- Hover and focus ---------------------------------------------------- */
+.hero-turn:hover .hero-turn-disc,
+.hero-turn:focus-visible .hero-turn-disc {
+  border-color: rgba(255, 255, 255, .6);
+  transform: scale(1.04);
+}
+.hero-turn:hover .hero-turn-label,
+.hero-turn:focus-visible .hero-turn-label { color: var(--on-dark); }
+.hero-turn:focus-visible { outline: 2px solid var(--primary-lite); outline-offset: 6px; }
+
+/* The photograph is a far bigger target than the label, and on a phone it is the
+   thing a thumb actually lands on. :has() lets the still carry the same press
+   without duplicating the control or absolutely positioning anything.
+   Progressive: browsers without :has() simply require the button itself. */
+.hero-stage:has(.hero-turn[data-state="rest"]) .hero-still { cursor: pointer; }
+
+/* ---- ONE lap, when the hero arrives ------------------------------------
+   .is-seen is added by js/hero3d.js from an IntersectionObserver, so the lap
+   plays when the hero is looked at rather than when the file parses. A single
+   transform on a 7px dot: compositor-only, and nothing next to the 212 long
+   tasks the model itself costs. */
+@keyframes hero-turn-lap { to { transform: rotate(360deg); } }
+
+.hero-turn.is-seen[data-state="rest"] .hero-turn-arrow {
+  animation: hero-turn-lap 1.4s var(--ease) 1 both;
+}
+
+/* ---- Busy: the arrow keeps going, so the wait explains itself -----------
+   The GLB is 948 KB — about five seconds on ordinary mobile data. A control that
+   looks dead for five seconds is one people press twice and then leave. */
+.hero-turn[data-state="busy"] { cursor: progress; }
+.hero-turn[data-state="busy"] .hero-turn-arrow {
+  animation: hero-turn-lap 1.1s linear infinite;
+}
+.hero-turn[data-state="busy"] .hero-turn-disc { border-color: rgba(255, 255, 255, .5); }
+.hero-turn[data-state="busy"] .hero-turn-label { color: var(--on-dark); }
+
+/* ---- Live: the button becomes the floor ---------------------------------
+   The disc stays and the arrow goes. What was the control is now the ground the
+   model stands on, which is the whole point of the design: pressing it did
+   something physical rather than swapping one widget for another. */
+.hero-turn[data-state="live"] { cursor: default; pointer-events: none; }
+.hero-turn[data-state="live"] .hero-turn-arrow { opacity: 0; animation: none; }
+.hero-turn[data-state="live"] .hero-turn-disc { border-color: rgba(255, 255, 255, .18); }
+.hero-turn[data-state="live"] .hero-turn-label {
+  /* Stays white while it is teaching; js/hero3d.js adds .is-taught on a timer and
+     THAT is what fades it. No transition delay here — the delay used to live in the
+     CSS and was skipped because both class changes landed in one recalculation. */
+  transition: opacity var(--dur-xl) var(--ease);
+}
+.hero-turn[data-state="live"].is-taught .hero-turn-label { opacity: 0; }
+
+/* ---- Failure: keep the photograph, say why ------------------------------ */
+.hero-turn[data-state="failed"] { cursor: default; pointer-events: none; }
+.hero-turn[data-state="failed"] .hero-turn-arrow { opacity: 0; animation: none; }
+.hero-turn[data-state="failed"] .hero-turn-disc { opacity: .35; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* No lap at rest and no spin while loading: the label alone carries the state,
+     and the disc stops transforming on hover. */
+  .hero-turn .hero-turn-arrow { animation: none !important; }
+  .hero-turn:hover .hero-turn-disc,
+  .hero-turn:focus-visible .hero-turn-disc { transform: none; }
+}
+
+.hero-still {
+  object-fit: contain;
+  /* A cut-out with no ground reads as pasted on. The shadow is baked into the
+     webp by scripts/make_cutouts.py; this only deepens it against ink. */
+  filter: drop-shadow(0 28px 34px rgba(0, 0, 0, .55));
+  transition: opacity var(--dur-xl) var(--ease);
+}
+.hero-stage > model-viewer {
+  background: transparent;   /* the default — and what makes it a free cut-out */
+  opacity: 0;
+  transition: opacity var(--dur-xl) var(--ease);
+  --poster-color: transparent;
+}
+.hero-stage > model-viewer.is-in { opacity: 1; }
+/* data-mode="3d" is set on `load`, so the still is never hidden before there
+   is something to hide it behind. A broken GLB deletes the attribute again. */
+.hero-stage[data-mode="3d"] .hero-still { opacity: 0; }
+
+.hero-note {
+  grid-row: 2;
+  justify-self: center;
+  margin: 1rem 0 0;
+  display: flex; align-items: center; gap: .6rem;
+  font-size: var(--fs-small);
+}
+.hero-note span {
+  font-family: var(--sans);
+  font-weight: 700; font-size: .6875rem;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--primary-lite);
+}
+.hero-note .rule-link { padding: 0; font-size: var(--fs-small); }
+
+/* ==========================================================================
+   META STRIP — three facts on hairlines, closing the dark opening.
+   ========================================================================== */
+.meta-strip {
+  padding-block: clamp(2rem, 5vw, 3.25rem);
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+.meta-grid {
+  display: grid;
+  gap: 1px;                                 /* the gap IS the hairline */
+  background: rgba(255, 255, 255, .1);
+}
+@media (min-width: 720px) {
+  .meta-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.meta-cell {
+  background: var(--ink);
+  padding: 1.25rem clamp(1rem, 3vw, 2rem);
+  display: grid; gap: .35rem;
+  align-content: start;
+}
+.meta-cell b {
+  font-family: var(--display);
+  font-weight: 200;
+  font-size: clamp(2.75rem, 7vw, 4.5rem);
+  line-height: .9;
+  color: var(--on-dark);
+  font-variant-numeric: tabular-nums;
+}
+.meta-cell span {
+  font-size: var(--fs-small);
+  color: var(--on-dark-mute);
+  max-width: 26ch;
+}
+
+/* ==========================================================================
+   PIECE CARDS — hairlines, not boxes.
+
+   The reference's grid cell has no container: a cut-out floats on the page, and
+   the only structure is a rule above the cell and a rule above its foot. This
+   block used to paint a filled --ink-2 rectangle with a border, which on a
+   paper page read as a dark slab and was the single most visible symptom of the
+   half-migrated skin.
+
+   What replaces the box, and why each part is load-bearing:
+     • a 1px --hair rule on TOP of every cell, so a 3-column grid reads as a
+       ruled table rather than as floating scraps. Top rather than bottom: the
+       last row then has no dangling rule under it, and the grid's own gap does
+       not need compensating.
+     • the cut-out over --product-bg (css/experience.css), which is paper with a
+       barely-there studio vignette.
+     • hover moves the RULE to red and lifts the piece, rather than changing a
+       fill. With no box there is no fill to change, and the rule is the only
+       thing the cell shares with its neighbours — so colouring it is what
+       reads as "this cell".
+
+   Contrast: the body text roles all flip to the on-light set. --clay
+   (#A4888B) was correct on #111219 at 5.83:1 but is only 3.24:1 on paper, and
+   both the eyebrow (12px/700) and the foot (15px/600) are under WCAG's
+   large-text cutoff, so they owe the full 4.5:1. --on-light-fade is 7.69:1 and
+   --on-light-mute is 5.57:1.
+   ========================================================================== */
+.piece-card {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding-top: 1.15rem;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  text-decoration: none;
+  color: var(--on-light);
+  transition: border-color var(--dur) var(--ease);
+}
+.piece-card:hover, .piece-card:focus-visible { border-top-color: var(--primary); }
+
+.piece-figure {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  margin: 0;                    /* <figure> ships with 1em 40px in every UA */
+}
+/* `contain`, not `cover`: a cut-out is re-padded square with an 8% margin by
+   scripts/make_cutouts.py, and cropping to fill would eat that margin and
+   clip the silhouette's feet. The opaque fallback in js/card.js is a 4:3
+   photograph, so it re-crops via [data-fallback] below. */
+.piece-figure img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 0;
+  transition: transform .5s var(--ease);
+}
+.piece-figure[data-fallback="photo"] img { object-fit: cover; }
+.piece-card:hover .piece-figure img { transform: translateY(-6px) scale(1.03); }
+
+.piece-body { padding: 1.1rem .1rem 1.35rem; display: grid; gap: .35rem; }
+/* Two lines, then ellipsis. Piece names run from "Emerald Bed" to "Ivory
+   Marble Dining Set · Eight", and an unclamped 3-line title in one cell of a
+   3-column grid drags every sibling's foot out of alignment. */
+.piece-body h3 {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* Eyebrow with the reference's short leading rule, drawn rather than marked up
+   so js/card.js stays free of presentational elements. */
+.piece-cat {
+  display: flex; align-items: center; gap: .55rem;
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--on-light-fade);
+}
+.piece-cat::before {
+  content: ""; flex: none; width: 18px; height: 2px; background: var(--primary);
+}
+.piece-tag { color: var(--on-light-mute); font-size: var(--fs-small); margin: 0; }
+
+/* The cell foot: the price leads, the lead time follows. The two are one
+   decision for made-to-order furniture — ৳120,000 in six weeks and ৳420,000 in
+   twelve are different propositions, not the same one at two prices. */
+.piece-foot {
+  margin: .55rem 0 0; padding-top: .7rem;
+  border-top: 1px solid var(--hair);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  font-size: var(--fs-small);
+}
+.piece-foot-k {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--on-light-mute);
+}
+/* Tabular figures so a column of cards has its prices in vertical alignment
+   rather than shifting by digit width. */
+.piece-price {
+  font-weight: 600; color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+}
+.piece-foot-v { font-weight: 600; color: var(--on-light); font-variant-numeric: tabular-nums; }
+
+/* AR marker on cards — the signal colour, doing its one job.
+
+   White on the signal, not ink. This pairing is a leftover from the retired
+   lime AR law: against #C6F24E, dark ink was the only legible choice. Folding
+   AR into red flipped the ground from bright to dark but left the text behind,
+   so the badge shipped ink-on-#D41929 — measured 3.53:1 at 11px/800, which owes
+   4.5:1 and fails. --primary-ink on the same ground is 5.29:1. Same correction
+   applies to .ar-inline below; they are the only two places the badge is drawn. */
+.ar-flag {
+  position: absolute; top: 10px; right: 10px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--ar-signal); color: var(--primary-ink);
+  font-size: .6875rem; font-weight: 800; letter-spacing: .02em;
+  padding: 5px 9px;
+}
+.ar-flag svg { width: 13px; height: 13px; }
+
+/* Inline "AR" token used in body copy to point at the card badge. */
+.ar-inline {
+  display: inline-block; background: var(--ar-signal); color: var(--primary-ink);
+  font-family: var(--sans); font-size: .75em; font-weight: 800;
+  letter-spacing: .03em; padding: 1px 6px; vertical-align: .08em;
+}
+
+/* Count line under a category heading. */
+.cat-count {
+  margin-top: .75rem; font-size: var(--fs-small);
+  font-weight: 600; color: var(--on-light-fade);
+}
+
+/* ==========================================================================
+   PIECE PAGE — AR-first product layout
+   ========================================================================== */
+.piece-hero { display: grid; gap: clamp(1.5rem, 4vw, 3rem); padding-top: 2rem; }
+@media (min-width: 900px) {
+  .piece-hero { grid-template-columns: 1.15fr .85fr; align-items: start; }
+}
+
+/* Price & lead time meta directly under H1 */
+.piece-meta-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem .75rem;
+  margin-top: .6rem;
+  margin-bottom: 1.25rem;
+  font-size: 1.15rem;
+  color: var(--on-light);
+}
+.piece-meta-price {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--primary-deep);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.piece-meta-dot {
+  color: var(--hair-strong);
+}
+.piece-meta-time {
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+  font-weight: 500;
+}
+.stage-wrap { position: relative; }
+/* The stage is the piece page's hero: one square frame holding either the
+   poster or the loaded model. Paper with a hairline now — the ground itself
+   comes from --product-bg in css/experience.css, so the stage matches every
+   grid cell on the site without repeating the gradient. --edge-dk is the
+   hairline-on-light token; --edge is white rgba and is invisible here. */
+.stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: var(--edge-dk);
+  overflow: hidden;
+}
+.stage model-viewer,
+.stage > img {
+  width: 100%; height: 100%;
+  --poster-color: transparent;
+}
+.stage > img { object-fit: cover; padding: 0; }
+.stage-poster {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  cursor: pointer; border: 0; background: transparent; padding: 0;
+  width: 100%; height: 100%;
+}
+.stage-poster img { width: 100%; height: 100%; object-fit: cover; padding: 0; }
+/* js/piece-fill.js sets data-cut once it has swapped in the alpha cut-out. A
+   cut-out must not be cropped to fill — its 8% margin is what stops the piece
+   touching the frame — so it switches to `contain`. The fallback photograph
+   keeps `cover` above. */
+.stage[data-cut] .stage-poster img { object-fit: contain; }
+/* "View in 3D" sits on top of a photograph of unknown lightness, so it cannot
+   rely on the page's ground for contrast — it carries its own ink chip.
+   White-on-ink is 17.4:1 whatever the photo does underneath. */
+.stage-poster .play-3d {
+  position: absolute; bottom: 14px; left: 14px;
+  background: var(--ink); color: var(--on-dark);
+  font-size: var(--fs-small); font-weight: 700;
+  padding: 11px 18px;
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 44px;
+}
+/* A poster with no model behind it must not look tappable. */
+.stage-poster--static { cursor: default; }
+.stage-poster--static:disabled { opacity: 1; }
+
+.stage-note {
+  margin-top: .6rem; font-size: .8125rem; color: var(--on-light-mute);
+  min-height: 1.2em;
+}
+.ar-row { margin-top: 1rem; display: grid; gap: .75rem; }
+/* `display:grid` outranks the hidden attribute, which silently kept the AR
+   button on screen for pieces that have no model. Restore hidden's meaning. */
+.ar-row[hidden] { display: none; }
+
+/* Dimensions table — tabular, weighted, hairline ruled. */
+.spec-table { width: 100%; border-collapse: collapse; margin: 0; }
+.spec-table caption {
+  text-align: left; font-size: var(--fs-eyebrow); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--on-light-fade);
+  padding-bottom: .6rem;
+}
+.spec-table th, .spec-table td {
+  text-align: left; padding: .7rem 0; border-bottom: 1px solid var(--hair);
+  font-size: var(--fs-body);
+}
+/* The label is the quiet half and the measurement is the answer, so the weight
+   and the ink both go to the value. --on-light-mute is 5.57:1 at 17px. */
+.spec-table th { font-weight: 500; color: var(--on-light-mute); }
+.spec-table td {
+  font-weight: 600; color: var(--on-light);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+
+/* Honest warning where AR scale is unverified. This is the one notice on the
+   page a buyer must not skim past, so it keeps a filled ground — the quietest
+   paper step, with the signal red carrying the left edge. */
+.ar-caveat {
+  margin-top: .9rem; padding: .8rem 1rem;
+  background: var(--paper-2); border: 1px solid var(--hair);
+  border-left: 3px solid var(--primary);
+  font-size: .8125rem; color: var(--on-light-mute);
+}
+
+/* Fabric / finish swatches — a row of pressable pills, each with a colour dot. */
+.swatches { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.swatch {
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 48px; padding: 8px 14px 8px 10px;
+  background: transparent; border: var(--edge-dk); color: var(--on-light);
+  font-size: var(--fs-small); font-weight: 600; cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+              color var(--dur) var(--ease);
+}
+/* Same three states as .filter-bar .chip, for the same reasons: hover takes the
+   red boundary, and pressed inverts to an ink pill so the current selection is
+   marked by shape and weight rather than by colour alone. The old rule used
+   --clay on hover (3.24:1 on paper) and a --bone fill edged in --bone, i.e. a
+   white pill outlined in white on white. */
+.swatch:hover { border-color: var(--primary); }
+.swatch[aria-pressed="true"] {
+  background: var(--on-light); border-color: var(--on-light); color: var(--paper);
+}
+
+/* The 20px colour dot. It shares the .chip class with the filter-bar chips
+   (js/piece.js builds it as <span class="chip">), and .chip is a 48px-tall
+   text control — so every one of its box declarations has to be undone here or
+   the dot inherits them. min-height is the one that actually bites: it is
+   applied AFTER height, so `height: 20px` alone loses and the dot renders 48px
+   tall. padding is the second: with the global border-box, .chip's
+   `padding: 11px 18px` is 36px of horizontal padding inside a 20px box, which
+   floors the used width near 38px. Both are reset explicitly.
+
+   The border is intentionally left dark-ish rather than --hair: this element's
+   background is an arbitrary fabric colour set inline by js/piece.js:83, so a
+   near-white edge disappears against pale swatches like Ivory (#EFE7D6). Black
+   at 25% keeps a visible edge on every tint in the TINTS map. */
+.swatch .chip {
+  width: 20px; height: 20px; min-height: 0; flex: none;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, .25);
+}
+
+/* ---- Stage Swatches (Color & Finish selection under 3D stage) ------------ */
+.stage-finish {
+  margin-top: 1.1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+}
+.stage-finish-head {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  margin-bottom: .85rem;
+}
+.stage-finish-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--on-light-mute);
+}
+.stage-finish-active {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--primary-deep);
+}
+.stage-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stage-swatches .swatch {
+  min-height: 48px;
+  padding: 8px 16px 8px 12px;
+  background: var(--paper);
+  border: 1.5px solid var(--hair-strong);
+  border-radius: 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--on-light);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+              color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+.stage-swatches .swatch:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.stage-swatches .swatch[aria-pressed="true"] {
+  background: var(--on-light);
+  border-color: var(--on-light);
+  color: var(--paper);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+}
+.stage-swatches .swatch[aria-pressed="true"] .chip {
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.matlist { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.matlist li {
+  padding-left: 1.1rem; position: relative;
+  font-size: var(--fs-small); color: var(--on-light-mute);
+}
+.matlist li::before {
+  content: ""; position: absolute; left: 0; top: .62em;
+  width: 7px; height: 7px; background: var(--primary);
+}
+
+/* ==========================================================================
+   QR HANDOFF (desktop → phone)
+   ========================================================================== */
+.qr-card {
+  display: grid; gap: 1rem; align-items: center;
+  grid-template-columns: auto 1fr;
+  background: var(--paper-2); border: var(--edge-dk); padding: 1.1rem;
+}
+/* The code keeps a white pad on any surface: QR decoders need the quiet zone to
+   be the lightest thing in frame, so this padding is functional, not styling. */
+.qr-card canvas, .qr-card img {
+  width: 116px; height: 116px; background: #fff; padding: 7px;
+}
+.qr-card p { margin: 0; font-size: var(--fs-small); color: var(--on-light-mute); }
+.qr-card strong { color: var(--on-light); display: block; font-size: var(--fs-body); }
+@media (max-width: 767px) { .qr-card { display: none; } }
+
+/* ==========================================================================
+   AR COACHING OVERLAY
+   ========================================================================== */
+/* The one component that stays dark on purpose: it is a full-screen modal shown
+   immediately before the camera opens, and dimming the room is what makes the
+   handoff into AR feel continuous. Only the tint changed — rgba(23,16,15,.97)
+   was oxblood-era warm and read brown against the new blue-black chrome. This
+   is --ink's own value at the same opacity, so the modal, the hero and the
+   floating pill are one family. */
+.coach {
+  position: fixed; inset: 0; z-index: var(--z-modal);
+  background: rgba(17, 18, 25, .97);
+  color: var(--on-dark);
+  display: grid; place-items: center; padding: 1.5rem;
+}
+.coach[hidden] { display: none; }
+/* A dark island in a light page has to say so: base.css only flips heading
+   colour under .section-dark, and this is fixed-position outside any section. */
+.coach h2, .coach h3, .coach h4 { color: var(--on-dark); }
+.coach-inner { max-width: 420px; text-align: center; }
+.coach-steps { display: grid; gap: 1.1rem; margin: 1.75rem 0; text-align: left; }
+.coach-step {
+  display: grid; grid-template-columns: 40px 1fr; gap: .9rem; align-items: start;
+}
+/* Third and last instance of the lime-era pairing (see .ar-flag above): the
+   numeral inherits --fs-body at weight 800, which is 17px — under WCAG's
+   18.66px-bold large-text cutoff — so it owes 4.5:1 and ink-on-#D41929 gives
+   3.53:1. White is 5.29:1. */
+.coach-num {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  background: var(--ar-signal); color: var(--primary-ink); font-weight: 800;
+}
+.coach-step p { margin: 0; font-size: var(--fs-small); color: var(--on-dark-mute); }
+.coach-step h4 { margin: 0 0 .15rem; }
+
+/* ==========================================================================
+   THE ORDER BOARD — /room/
+
+   A hairline-ruled sheet, one row per design: thumbnail, details, quantity
+   stepper, remove. Built by js/room.js.
+
+   Four columns on desktop collapse to a 2x2 grid on phones rather than four
+   cramped ones — the thumbnail and the body share the top row, the stepper and
+   the remove button share the bottom. `auto` on the last two columns lets the
+   stepper size itself to its content instead of being squeezed by a fr unit.
+   ========================================================================== */
+.room-list { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+.room-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-areas: "thumb body" "qty remove";
+  gap: .85rem 1rem;
+  align-items: center;
+  background: transparent; border: var(--edge-dk); padding: .85rem;
+}
+@media (min-width: 620px) {
+  .room-item {
+    grid-template-columns: 92px minmax(0, 1fr) auto auto;
+    grid-template-areas: "thumb body qty remove";
+  }
+}
+.room-thumb  { grid-area: thumb; display: block; }
+.room-body   { grid-area: body; min-width: 0; }
+.room-qty    { grid-area: qty; }
+.room-remove { grid-area: remove; }
+
+/* `contain`, not `cover`: these are cut-outs now, and cropping to fill would eat
+   the 8% alpha margin scripts/make_cutouts.py pads each piece with. The ground
+   comes from --product-bg in css/experience.css. js/room.js switches this to
+   `cover` inline if it has to fall back to the opaque 4:3 master. */
+.room-item img {
+  width: 92px; height: 92px; object-fit: contain;
+  padding: 0;
+}
+.room-item h3 { margin: 0 0 .2rem; font-size: 1.1rem; }
+.room-item h3 a { text-decoration: none; }
+.room-item h3 a:hover { color: var(--primary-deep); }
+.room-meta { margin: 0; font-size: .8125rem; color: var(--on-light-mute); }
+
+/* The per-row finish picker. Inline label so the row stays one line tall on
+   desktop; the select carries --hair-strong because its boundary is the whole
+   affordance (WCAG 1.4.11 wants 3:1 there and --hair is 1.44:1). */
+.room-variant {
+  margin: .55rem 0 0;
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  font-size: .8125rem;
+}
+.room-variant label {
+  font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  font-size: .6875rem; color: var(--on-light-fade);
+}
+.room-variant select {
+  min-height: 40px; padding: 6px 10px;
+  background: var(--paper); color: var(--on-light);
+  border: 1px solid var(--hair-strong); border-radius: 0;
+  font-family: var(--sans); font-size: var(--fs-small);
+}
+.room-variant select:focus { border-color: var(--primary); outline: none; }
+
+/* ---- Quantity stepper ---------------------------------------------------
+   Two buttons around a real number input. The buttons are the fast path on a
+   phone; the input is what keyboard and screen-reader users drive. Both write
+   through one clamp in js/room.js.
+
+   44px targets: WCAG 2.2 SC 2.5.8 asks 24x24 at AA, but this control is used
+   repeatedly and sits beside a destructive Remove, so it takes the AAA size.
+   Tabular figures stop the box resizing between "1" and "11". */
+.room-qty { display: flex; align-items: center; gap: 0; }
+.qty-btn {
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid var(--hair-strong);
+  color: var(--on-light);
+  font-family: var(--sans); font-size: 1.1rem; font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+              background var(--dur) var(--ease);
+}
+.qty-btn:hover:not(:disabled) {
+  border-color: var(--primary); color: var(--primary-deep);
+}
+/* Disabled at the ends of the range is a real state, so it must not rely on
+   colour alone — the cursor changes and the button genuinely stops responding. */
+.qty-btn:disabled { opacity: .35; cursor: default; }
+.qty-input {
+  width: 52px; height: 44px;
+  /* The stepper reads as one control, so the shared edges collapse. */
+  margin: 0 -1px;
+  padding: 0;
+  text-align: center;
+  background: var(--paper); color: var(--on-light);
+  border: 1px solid var(--hair-strong); border-radius: 0;
+  font-family: var(--sans); font-size: var(--fs-small); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* The native spinners duplicate the two buttons and are far too small to hit. */
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qty-input { -moz-appearance: textfield; appearance: textfield; }
+/* Raised above the buttons on focus so the ring is not clipped by their edges. */
+.qty-input:focus { border-color: var(--primary); outline: none; position: relative; z-index: 1; }
+
+/* A destructive control, so its boundary owes 3:1 on its own under WCAG 1.4.11
+   — --hair (1.44:1) is fine for a divider but not for the only thing outlining
+   a remove button. --hair-strong is 3.23:1. */
+.room-remove {
+  min-width: 48px; min-height: 48px;
+  background: transparent; border: 1px solid var(--hair-strong);
+  color: var(--on-light-mute);
+  cursor: pointer; font-size: var(--fs-small);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.room-remove:hover { border-color: var(--primary); color: var(--primary-deep); }
+.room-empty {
+  border: 1px dashed var(--hair-strong); padding: 2.5rem 1.5rem; text-align: center;
+  color: var(--on-light-mute);
+}
+
+/* ---- Totals and the optional customer fields --------------------------- */
+.room-total {
+  margin: 2rem 0 0; padding-top: 1.1rem;
+  border-top: 1px solid var(--hair);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  font-size: .75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-mute);
+}
+.room-total strong {
+  font-family: var(--display); font-weight: 300;
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+  letter-spacing: .04em; text-transform: none;
+  color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+}
+.order-fields { margin-top: 1.75rem; }
+@media (min-width: 620px) {
+  /* Name and area pair up; the notes textarea keeps the full width. */
+  .order-fields {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem;
+  }
+  .order-fields .field:last-child { grid-column: 1 / -1; }
+}
+/* "optional" has to be visibly quieter than the label it qualifies, or every
+   field reads as required. --on-light-mute is 5.57:1, so it is quiet but not
+   decorative. */
+.field-opt {
+  font-weight: 400; text-transform: none; letter-spacing: 0;
+  color: var(--on-light-mute); font-size: .8125rem;
+}
+
+/* ==========================================================================
+   FORMS
+   ========================================================================== */
+/* Inputs are the clearest case for --hair-strong. WCAG 1.4.11 asks 3:1 of a
+   control's boundary, and on a text field the boundary IS the affordance —
+   there is no fill and no inside label saying "you can type here". #8F8F8F is
+   3.23:1 on white; --hair (#D7D7D7) is 1.44:1 and leaves the field invisible
+   until it is focused.
+
+   The old `.section-light .field input` override is gone: it existed to patch a
+   dark default back to white inside light bands, and now that paper IS the
+   default there is nothing to patch. One rule, every surface. */
+.field { display: grid; gap: .4rem; margin-bottom: 1.1rem; align-content: start; }
+.field label { font-size: var(--fs-small); font-weight: 600; }
+.field input, .field select, .field textarea {
+  min-height: 52px; padding: 13px 15px;
+  background: var(--paper); border: 1px solid var(--hair-strong); border-radius: 0;
+  color: var(--on-light); font-family: var(--sans); font-size: var(--fs-body);
+  transition: border-color var(--dur) var(--ease);
+}
+.field input, .field select { height: 52px; }
+.field textarea { min-height: 130px; resize: vertical; }
+/* :focus-visible already draws the 3px ring (base.css); recolouring the border
+   too is what identifies WHICH field has it when several sit in a column. */
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--primary); outline: none;
+}
+.field-hint { font-size: .8125rem; color: var(--on-light-mute); }
+
+/* ==========================================================================
+   MISC PAGE BITS
+   ========================================================================== */
+.stat-row {
+  display: grid; gap: var(--gap);
+  /* 172px, not 190px. This row has exactly one call site — the three derived
+     counts in /about/'s .media-split column, measured at 592px — and 3x190 plus
+     two gaps is 618, so auto-fit dropped to two columns and left "viewable in AR"
+     alone on a second row. 3x172 + 48 = 564 fits. min(100%, …) still collapses it
+     to one column on a phone. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 172px), 1fr));
+}
+.stat { border-left: 3px solid var(--primary); padding-left: 1rem; }
+/* Weight 200 with positive tracking, matching the display law in base.css. The
+   old 800 / -.03em was the retired system's voice and made these numerals the
+   heaviest type on the pages that carry them. */
+.stat b {
+  display: block; font-family: var(--display); font-size: 2.4rem; font-weight: 200;
+  line-height: 1; letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+}
+.stat span { font-size: var(--fs-small); color: var(--on-light-mute); }
+
+.step-list { counter-reset: s; list-style: none; margin: 0; padding: 0; display: grid; gap: 1.75rem; }
+.step-list li { counter-increment: s; display: grid; grid-template-columns: 54px 1fr; gap: 1.1rem; }
+/* Red is safe on this numeral where it would not be on body copy: 1.6rem at
+   weight 200 is 25.6px, over WCAG's 24px large-text bar, so 4.37:1 clears the
+   3:1 it owes. The ordering is also carried by document order, not by hue. */
+.step-list li::before {
+  content: counter(s, decimal-leading-zero);
+  font-family: var(--display); font-size: 1.6rem; font-weight: 200;
+  letter-spacing: .02em;
+  color: var(--primary); line-height: 1;
+}
+.step-list li > *:not(::before) { grid-column: 2; }
+.step-list h3 { margin: 0 0 .3rem; }
+.step-list p { margin: 0; color: var(--on-light-mute); font-size: var(--fs-small); grid-column: 2; }
+
+.filter-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+
+/* The filter bar is the only TEXT .chip on the site and it lives on paper
+   (collections/ is the sole page with a .filter-bar), so all three states are
+   scored against white. Every colour in this block used to be a dark-surface
+   token, and all three states were broken in a different way:
+
+     rest    --on-dark-mute #A4888B — 5.83:1 on #111219, which is what it was
+             picked for, but only 3.24:1 on white. A 15px/600 control owes 4.5:1.
+     hover   --bone, which the re-skin aliased to --paper. Pointing at a chip
+             painted white text on white and the control vanished.
+     pressed --bone fill with a --bone border, i.e. a white pill edged in white
+             on white — which is why the active filter read as unstyled body
+             text with no affordance at all.
+
+   All three states measured in-browser after the fix: rest #686868 at 5.57:1,
+   hover #191919 with an #ED1C2E border at 17.58:1 / 4.37:1, pressed an inverted
+   ink pill at 17.58:1. Hover matches the hair -> primary transition the
+   rule-links use; the pressed pill is what the reference does with an active
+   filter, and it marks the current state by shape and weight, not colour alone.
+   --edge-dk is the hairline-on-light token; --edge is white rgba and was
+   invisible here.
+
+   The rest hairline is #D7D7D7 on white = 1.44:1, under the 3:1 that 1.4.11
+   asks of a control boundary. Left as-is deliberately: 1.4.11 exempts a
+   boundary that is not the only thing identifying the control, and the label
+   itself carries 5.57:1. Raising it would mean changing --hair sitewide, and
+   faint hairlines instead of card borders ARE the reference's design language.
+
+   Safe for .swatch .chip (the 20px colour dot on piece pages): that one carries
+   an inline style.background from js/piece.js:83, which outranks any stylesheet
+   rule, it overrides this border at :316, and it holds no text so colour never
+   applies to it. */
+.chip {
+  min-height: 48px; padding: 11px 18px;
+  background: transparent; border: var(--edge-dk); color: var(--on-light-mute);
+  font-family: var(--sans); font-size: var(--fs-small); font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center;
+}
+.chip:hover { border-color: var(--primary); color: var(--on-light); }
+.chip[aria-pressed="true"], .chip[aria-current="page"] {
+  background: var(--on-light); border-color: var(--on-light); color: var(--paper);
+}
+.chip--sm {
+  min-height: 36px; padding: 6px 12px; font-size: 0.8125rem;
+}
+/* NOT STICKY, and that is the whole point of this block.
+
+   It used to be `position: sticky; top: calc(var(--dock-h) - 1px); z-index: 20`
+   over a 94%-white blurred ground. Measured on a 390x844 phone: 398px tall, so
+   under the 64px header it followed the visitor down the page and permanently
+   occupied the bottom third of the viewport — 383px left for the results it was
+   supposed to be filtering. It also parked itself under the fixed quote pill,
+   which is the collision css/base.css's .coll-fab-clear rule exists to solve.
+
+   A filter bar earns sticky when it is one line. At four wrapped rows of chips
+   it stops being a control and becomes a wall, so it now scrolls away with the
+   rest of the page: you set a filter, then you browse what you filtered.
+
+   The background and backdrop-filter went with it. They existed only so content
+   scrolling underneath stayed legible through the bar; nothing passes under it
+   now, and a blur costs a compositor layer for nothing. */
+.coll-controls {
+  padding-block: .85rem;
+  margin-top: 2rem;
+  border-bottom: var(--edge-dk);
+}
+/* The visible line: disclosure button on the left, sort on the right. Sort is
+   the one control that stayed outside the panel, so it gets the far end rather
+   than sitting beside the button and reading as a second filter. */
+.coll-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+  font-size: var(--fs-small);
+}
+
+/* Deliberately NOT .btn. This is a disclosure, not an action: .btn is the
+   AntiMetal pill with the sweeping accent chip and a 52px body, which would
+   outweigh the sort control beside it and read as the page's primary call to
+   action. Same reasoning as .cfg-advanced-toggle, and the dashed-to-solid
+   border and rotating caret are borrowed from it so the site has one
+   "this opens" gesture rather than two. */
+.coll-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 48px;                       /* WCAG 2.5.5, same as .chip */
+  padding: 0 1.1rem;
+  background: var(--paper);
+  border: 1.5px dashed var(--hair-strong);
+  border-radius: var(--btn-r-sm);
+  color: var(--on-light);
+  font-family: var(--sans);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease),
+              background var(--dur) var(--ease);
+}
+.coll-filter-btn:hover { border-color: var(--primary); background: var(--paper-2); }
+.coll-filter-btn[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--on-light);
+}
+.coll-filter-caret {
+  flex: none;
+  color: var(--on-light-mute);
+  transition: transform var(--dur) var(--ease);
+}
+.coll-filter-btn[aria-expanded="true"] .coll-filter-caret { transform: rotate(180deg); }
+
+/* Solid red only because it is a 3-4mm disc carrying two digits at most — the
+   "red is an accent, never a field" line in tokens.css is about surfaces, and
+   this is the same badge role as .cart-count, which sets the precedent. */
+.coll-filter-count {
+  flex: none;
+  min-width: 20px; height: 20px;
+  padding: 0 5px;
+  display: grid; place-items: center;
+  background: var(--primary-deep);
+  color: var(--primary-ink);
+  border-radius: 10px;
+  font-size: .6875rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* [hidden] is display:none via the base.css !important rule, so a closed panel
+   costs no layout — which is what lets the eleven chips stay in the markup
+   without re-introducing the 0.4472 CLS they caused when JS appended them.
+   No height/opacity transition for the same reason: animating this open means
+   animating the grid's position, and that IS layout shift. */
+.coll-filter-panel {
+  margin-top: .875rem;
+  padding-top: .875rem;
+  border-top: var(--edge-dk);
+}
+.coll-filter-row {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  font-size: var(--fs-small);
+}
+.coll-filter-row + .coll-filter-row { margin-top: .75rem; }
+/* The label owns a fixed column so "Room:" and "Price:" align down the left
+   edge and the two chip groups start on the same x. Bengali labels are shorter
+   than the English, hence a floor rather than a fitted width. */
+.coll-filter-row > .coll-filter-label {
+  flex: none;
+  min-width: 3.5rem;
+  padding-top: .7rem;                     /* onto the first chip row's centre */
+}
+.coll-filter-row .filter-bar { margin-bottom: 0; }
+
+/* These two groups had NO rule at all — they computed to display:block, so the
+   chips inside them laid out as inline boxes separated by the whitespace text
+   nodes in the markup. That is what made the price row read as unevenly spaced
+   next to the flex-gapped room chips above it: word-spacing is not a gap, it
+   does not survive a wrap cleanly, and it left the "Price:" label sitting on the
+   text baseline rather than centred against a 36px control. */
+.coll-price-group,
+.coll-sort-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.coll-price-group { flex: 1; }
+.coll-filter-label {
+  flex: none;
+  font-weight: 600;
+  color: var(--on-light-mute);
+}
+.coll-sort-select {
+  padding: .45rem .85rem;
+  border: 1px solid var(--hair-strong);
+  border-radius: var(--btn-r-sm);
+  background: var(--paper);
+  color: var(--on-light);
+  font-family: inherit;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  cursor: pointer;
+}
+.coll-sort-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- The control block on a phone ---------------------------------------
+   Measured at 390x844 when all eleven chips were on show: the block was 398px,
+   and 248px of that was the room chips at four wrapped rows plus a 32px
+   .filter-bar margin sized for a desktop single line. Closed, the block is now
+   one 48px row — but the panel still has to be usable open, and every seam in it
+   was set for a layout that does not happen on a phone.
+
+   The chips keep their 48px height. That is a WCAG 2.5.5 target size and the
+   whole reason the .chip block above sets min-height rather than padding alone;
+   the savings come from the seams between them, never from the target.
+
+     .filter-bar margin-bottom  32px -> 0 (the row owns the gap now)
+     .coll-controls padding      13.6 -> 10px
+
+   The button and the sort control also stop sitting on one line. Side by side at
+   390 the select is squeezed to whatever is left over, and in Bengali the button
+   grows and pushes it narrower still. Two full-width rows give each its own line
+   and let the select run to a real width.
+
+   The row labels move above their chips rather than holding a left column: a
+   3.5rem gutter is 10% of a 390px screen spent on the word "Price:", and the
+   chips it labels then wrap a row earlier for it. */
+@media (max-width: 700px) {
+  .coll-controls { padding-block: .625rem; margin-top: 1.5rem; }
+  .filter-bar { gap: .4rem; margin-bottom: 0; }
+  .coll-bar { gap: .625rem; }
+  .coll-filter-btn, .coll-sort-group { flex: 1 0 100%; }
+  .coll-filter-panel { margin-top: .75rem; padding-top: .75rem; }
+  .coll-filter-row {
+    display: block;
+  }
+  .coll-filter-row + .coll-filter-row { margin-top: .875rem; }
+  .coll-filter-row > .coll-filter-label {
+    display: block;
+    min-width: 0;
+    padding-top: 0;
+    margin-bottom: .45rem;
+  }
+  /* 44px, the floor for a control this size. The select is a real tap target and
+     was 37px, under the 2.5.5 minimum the chips beside it clear. */
+  .coll-sort-select { min-height: 44px; flex: 1; }
+}
+
+.media-split { display: grid; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
+@media (min-width: 860px) { .media-split { grid-template-columns: 1fr 1fr; } }
+/* Ground comes from --product-bg (css/experience.css); this rule only draws the
+   edge. --edge-dk is the hairline-on-light token — --edge is white rgba and was
+   invisible against paper, which is why these images looked unframed. */
+.media-split img { border: var(--edge-dk); }
+.media-split--flip img { order: 2; }
+
+/* Small inline label — a piece of metadata, not a control. Hairline on paper. */
+.pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: var(--paper-2); border: var(--edge-dk);
+  padding: 7px 12px; font-size: .8125rem; font-weight: 600;
+  color: var(--on-light);
+}
+
+/* Callout paragraph. Keeps a filled ground because its job is to interrupt the
+   reading flow; the quietest paper step plus the signal red on the leading edge
+   is enough to do that without becoming a card. */
+.notice {
+  background: var(--paper-2); border: 1px solid var(--hair);
+  border-left: 3px solid var(--primary);
+  padding: 1.1rem 1.25rem; font-size: var(--fs-small);
+  color: var(--on-light);
+}
+
+/* Plain information card, used across the supporting pages (ar, materials,
+   showroom, contact). Now hairline-ruled on paper for every surface — the old
+   version was a dark --ink-2 fill with a `.section-light` override bolted on to
+   turn it white again. With paper as the page default that override was doing
+   the real work everywhere and the base rule was the exception, so the two have
+   been collapsed into one honest declaration. */
+.card-plain {
+  border: var(--edge-dk); background: transparent;
+  padding: 1.5rem 1.4rem;
+  color: var(--on-light);
+}
+.card-plain h3 { margin: 0 0 .55rem; }
+.card-plain p { margin: 0; font-size: var(--fs-small); color: var(--on-light-mute); }
+.card-plain p + p { margin-top: .6rem; }
+/* On the quieter paper band the card needs to stay distinguishable from its
+   ground, so it takes pure white where the band is --paper-2. */
+.section-light .card-plain { background: var(--paper); }
+
+/* ==========================================================================
+   REAL PHOTOGRAPHS — /showroom/
+
+   Three rules, all about not shifting layout. aspect-ratio duplicates what the
+   width/height attributes already declare, deliberately: the attributes reserve
+   the box before CSS loads, the ratio holds it if a replacement file has a
+   different intrinsic size. object-fit means a swap crops instead of stretching.
+   ========================================================================== */
+.shot-lead {
+  display: block;
+  width: 100%; height: auto;
+  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  aspect-ratio: 4 / 3; object-fit: cover;
+  border: var(--edge-dk);
+}
+.shot-cap {
+  margin-top: .8rem;
+  max-width: 52ch;
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+}
+/* The three .card-plain boxes on /showroom/ are a grid row, so they stretch to the
+   tallest. The daytime storefront was first placed inside "Getting here", which made
+   that card 150px taller than its neighbours and left Address and Hours as mostly
+   empty outlines. The photograph moved to the visit band, where the page had real
+   empty space; this rule is what keeps the row honest if a card gains content again. */
+.grid--3 > .card-plain { align-self: stretch; }
+
+/* Real photographs in a .media-split keep their own ratio rather than the square
+   the product cut-outs used, and crop rather than stretch if a file is replaced. */
+.media-split img[src*="/real/"] { aspect-ratio: 3 / 2; object-fit: cover; width: 100%; height: auto; }
+.media-split img[src*="showroom-day"] { aspect-ratio: 4 / 3; }
+
+/* Stacked action group; guarded so `hidden` always wins over display. */
+.stack-actions { display: grid; gap: .85rem; }
+.stack-actions[hidden] { display: none; }
+
+/* ==========================================================================
+   §5 AR CAROUSEL — cut-outs breaking out of hairline rectangles.
+
+   The frame is drawn BEHIND the piece and shorter than it, so the silhouette
+   crosses the rule at the top. That overlap is the whole effect: it is what
+   makes the product look placed on the page rather than photographed in a box.
+   ========================================================================== */
+.arc { padding-block: var(--section); overflow: hidden; }
+.arc-head {
+  display: grid;
+  gap: 1.5rem;
+  align-items: end;
+  margin-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+@media (min-width: 800px) {
+  .arc-head { grid-template-columns: minmax(0, 1fr) auto; }
+}
+.arc-head h2 { margin: .4rem 0 .75rem; }
+.arc-head .lead { max-width: 52ch; margin: 0; }
+
+.arc-nav { display: flex; gap: .75rem; }
+.arc-btn {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--primary-deep);
+  color: var(--primary-ink);
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.arc-btn svg { width: 22px; height: 22px; }
+.arc-btn:hover:not(:disabled) { background: var(--ar-signal-dp); transform: scale(1.06); }
+/* Disabled is a real state here (the track has two ends), so it must be visible
+   without relying on colour alone — the opacity change is paired with the
+   cursor and with the button genuinely ceasing to respond. */
+.arc-btn:disabled { opacity: .3; cursor: default; }
+
+.arc-track {
+  list-style: none;
+  margin: 0;
+  /* FULL BLEED, both sides. This used to be a page-margin gutter on the left —
+     max(1.25rem, (100vw - var(--maxw)) / 2) — so slide 1 lined up under the
+     headline. That is the reference's own pattern and it reads well up to about
+     1500px, but the gutter grows with the window: measured at 1955px it is 358px
+     of empty white on the left against a full-bleed right edge, and the row looks
+     shoved rather than aligned. Slides also travel THROUGH that gutter when
+     scrolled (a scroll container's padding does not clip), so products only fill
+     the space after you swipe — which is precisely how it was reported.
+
+     A fixed 20px both sides trades the headline alignment for a strip that runs
+     off both edges, which is what tells a visitor it scrolls. --arc-gutter exists
+     so this value and the snap correction below cannot drift apart. */
+  padding: 0 var(--arc-gutter) 1rem;
+  display: flex;
+  gap: clamp(1.25rem, 3vw, 2.25rem);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* A focusable scroll container needs a visible ring of its own — keyboard
+     users scroll this with the arrow keys. */
+  outline-offset: 4px;
+}
+.arc-track::-webkit-scrollbar { display: none; }
+.arc-slide {
+  flex: 0 0 auto;
+  width: min(78vw, 340px);
+  scroll-snap-align: start;
+  /* MUST equal the track's padding-left, which is why both read --arc-gutter.
+     `scroll-snap-align: start` snaps a slide to the SCROLLPORT edge, not to the
+     content box, so without this outset the track rests at scrollLeft equal to
+     the gutter — slide 1 clipped against the window and the prev arrow live at
+     rest. Change one of these two without the other and that returns.
+
+     Deliberately scroll-MARGIN on the slide rather than scroll-PADDING on the
+     track: measured in this Chrome, any non-zero scroll-padding-inline on the
+     track makes every programmatic scrollBy({behavior:'smooth'}) resolve to the
+     position it started from, so the prev/next buttons silently stop working
+     while a plain instant scroll still moves — which is what makes it so easy to
+     miss. */
+  scroll-margin-inline-start: var(--arc-gutter);
+  display: grid;   /* so the link below can stretch to the tallest slide */
+}
+/* Rows: frame · title · description(1fr) · meta. The 1fr absorbs the difference
+   between a one-line and a three-line description, so the hairline and the AR
+   chip land on the SAME baseline across every slide — the row of rules reads as
+   one line across the carousel instead of a stagger. */
+.arc-slide > a {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  text-decoration: none;
+  color: var(--on-light);
+}
+.arc-frame {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1.1rem;
+}
+/* The rectangle: inset from the top so the piece overshoots it. */
+.arc-frame::before {
+  content: "";
+  position: absolute;
+  inset: 18% 0 0;
+  border: var(--edge-dk);
+  background: var(--paper-2);
+  transition: border-color var(--dur) var(--ease);
+}
+/* THE PIECE STANDS ON THE RECTANGLE, IT DOES NOT FLOAT IN IT.
+
+   `place-items: center` on the frame plus `object-fit: contain` centred each
+   cut-out in a square box, so a wide, short piece — the Modular Sectional is the
+   worst case — hung in the middle of the frame with equal air above and below
+   and no relationship to the rule beneath it. Measured: a 313px image box inside
+   a 340px frame, 14px of gap top and bottom, with the rectangle's top edge 61px
+   down. The sofa read as levitating.
+
+   Two changes fix it. `align-self: end` drops the image box to the frame's
+   bottom, and `object-position: center bottom` pushes the artwork inside that
+   box down as well — necessary because scripts/make_cutouts.py pads every
+   cut-out square with an 8% transparent margin, so anchoring the element alone
+   would still leave the piece floating by that margin.
+
+   Height goes to 100% and width stays at 92%: the frame is square but the pieces
+   are not, and letting the taller ones use the full height is what makes a
+   showcase and a sofa look like they are standing on the same floor. */
+.arc-frame img {
+  position: relative;
+  align-self: end;
+  width: 92%; height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+.arc-slide a:hover .arc-frame::before { border-color: var(--primary); }
+.arc-slide a:hover .arc-frame img { transform: translateY(-8px) scale(1.02); }
+.arc-frame img { transition: transform var(--dur-lg) var(--ease); }
+.arc-slide h3 { margin: 0 0 .4rem; font-size: var(--fs-h3); }
+.arc-tag {
+  margin: 0 0 .8rem;
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+}
+.arc-meta {
+  margin: 0;
+  padding-top: .7rem;
+  border-top: var(--edge-dk);
+  display: flex; align-items: center; gap: .6rem;
+  font-size: var(--fs-small);
+  color: var(--on-light-fade);
+}
+.arc-fallback { flex: 0 0 auto; padding-inline: 1.25rem; }
+
+/* ==========================================================================
+   §6 CATEGORY RAIL — one rule slides between six nodes.
+   ========================================================================== */
+.rail-sec { padding-block: clamp(2rem, 5vw, 3.5rem); border-block: var(--edge-dk); }
+/* ONE row, always — it scrolls sideways rather than wrapping.
+   Not a style preference: .rail-ind is absolutely positioned at bottom: 0 of
+   this box, so the moment the six nodes wrap to a second line the rule lands
+   under the LAST line no matter which node is hovered. Measured at 1440 with
+   flex-wrap: wrap — hovering "All pieces" (row 1, bottom 209) drew the rule at
+   270, sixty pixels adrift and floating beneath row 2; only the final row was
+   ever right. Keeping the rail to a single line makes bottom: 0 correct by
+   construction instead of needing a second custom property to chase the Y.
+   It also matches the reference (one row of six) and makes the `+ scrollLeft`
+   term in js/home.js's move() meaningful rather than dead code. */
+.rail {
+  position: relative;
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0 clamp(1rem, 2.6vw, 2.25rem);
+  overflow-x: auto;
+  scrollbar-width: none;             /* the row is short; a bar would read as chrome */
+  overscroll-behavior-x: contain;    /* no page-back gesture from the last node */
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail-node {
+  position: relative;
+  flex: 0 0 auto;                    /* never squeeze a label into two lines */
+  white-space: nowrap;
+  display: flex; align-items: baseline; gap: .5rem;
+  padding: .75rem 0;
+  text-decoration: none;
+  color: var(--on-light);
+  font-family: var(--display);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  transition: color var(--dur) var(--ease);
+}
+.rail-node b { font-weight: 300; font-size: clamp(1.05rem, 1.55vw, 1.35rem); }
+.rail-node i {
+  font-style: normal;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: .75rem;
+  letter-spacing: .04em;
+  color: var(--on-light-fade);       /* 7.69:1 — small text, so not a hairline grey */
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur) var(--ease);
+}
+.rail-node:hover, .rail-node:hover i { color: var(--primary-deep); }
+/* The sliding rule. Width and X arrive from js/home.js as custom properties, so
+   the movement is one compositor transform rather than six transitions. Purely
+   decorative: :hover already recolours the node, so a browser that never runs
+   the JS loses nothing legible. */
+.rail-ind {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  width: var(--ind-w, 0px);
+  background: var(--primary);
+  transform: translateX(var(--ind-x, 0px));
+  opacity: 0;
+  transition: transform var(--dur) var(--ease), width var(--dur) var(--ease),
+              opacity var(--dur) var(--ease);
+  pointer-events: none;
+}
+.rail[data-ind="on"] .rail-ind { opacity: 1; }
+
+/* ==========================================================================
+   §8 WORKSHOP FILM — click-to-play, poster until asked.
+   ========================================================================== */
+.shop { position: relative; padding-block: var(--section); overflow: hidden; }
+.shop-ghost {
+  position: absolute;
+  left: 50%; top: 6%;
+  transform: translateX(-50%) translateY(var(--ghost-y, 0px));
+  font-size: clamp(4rem, 15vw, 13rem);
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.shop-grid {
+  position: relative;
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .shop-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+}
+.shop-body h2 { margin: .4rem 0 1rem; }
+.shop-body p { color: var(--on-light-mute); }
+
+.film {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+  border: var(--edge-dk);
+  overflow: hidden;
+  display: grid;
+}
+.film-poster, .film-video {
+  grid-area: 1 / 1;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: opacity var(--dur-lg) var(--ease);
+}
+/* Until js/hero.js sets data-mode="play" the <video> has no src at all, so it
+   would paint as a black rectangle over the poster. Hidden until it has
+   something to show. */
+.film .film-video { opacity: 0; }
+.film[data-mode="play"] .film-video { opacity: 1; }
+.film[data-mode="play"] .film-poster { opacity: 0; }
+
+.film-play {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(64px, 9vw, 88px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--primary-deep);
+  color: var(--primary-ink);
+  display: grid; place-items: center;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease),
+              opacity var(--dur) var(--ease);
+}
+.film-play svg { width: 34%; height: 34%; }
+.film-play:hover { background: var(--ar-signal-dp); transform: translate(-50%, -50%) scale(1.07); }
+/* One icon, two glyphs, swapped by state — no second request, no layout shift. */
+.film-play .ic-pause { display: none; }
+.film[data-playing="true"] .film-play .ic-play { display: none; }
+.film[data-playing="true"] .film-play .ic-pause { display: block; }
+/* Once it is running the control gets out of the way, and comes back on hover
+   or keyboard focus so it is never unreachable. */
+.film[data-playing="true"] .film-play { opacity: 0; }
+.film[data-playing="true"]:hover .film-play,
+.film[data-playing="true"] .film-play:focus-visible { opacity: 1; }
+
+/* ==========================================================================
+   §8b WHY CHOOSE HEAVEN
+
+   A hairline list, not a grid of cards: the site already says "quality through
+   structure, not effects" on /materials/, and seven cards with icons would be
+   the opposite of that. Same construction as the milestone strip — a rule per
+   item, the label loud, the detail quiet underneath.
+
+   TWO COLUMNS EXACTLY, above 820px. auto-fit was tried first and gave three
+   columns at 1440, which leaves the seventh item alone in a row of three with
+   two empty cells beside it. Seven splits 4/3 in two columns, and the seventh
+   spans both so the block closes on a full-width rule instead of a gap.
+   ========================================================================== */
+.why-list {
+  display: grid;
+  gap: 0 3.5rem;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: why;
+}
+@media (min-width: 820px) {
+  .why-list { grid-template-columns: 1fr 1fr; }
+  .why-wide { grid-column: 1 / -1; }
+}
+.why-list li {
+  counter-increment: why;
+  padding: 1.6rem 0;
+  border-top: var(--edge-dk);
+}
+.why-list h3 {
+  display: flex;
+  align-items: baseline;
+  gap: .8rem;
+  margin: 0 0 .5rem;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+/* The numeral is the list's only ornament, and it is the accent colour rather
+   than a bullet glyph so the row reads as a numbered guarantee. */
+.why-list h3::before {
+  content: counter(why, decimal-leading-zero);
+  flex: none;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: .875rem;
+  letter-spacing: .06em;
+  color: var(--primary-deep);
+}
+.why-list p {
+  margin: 0;
+  /* Indented to the label's text, past the numeral, so the column has one edge. */
+  padding-left: 2.05rem;
+  max-width: 54ch;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  color: var(--on-light-mute);
+}
+.why-list p b { color: var(--on-light); font-weight: 600; }
+
+
+
+/* ==========================================================================
+   §8c THE MANAGING DIRECTOR
+
+   Two columns with the image cell deliberately empty until a real portrait
+   exists: the quote holds the left column at a readable measure either way, so
+   adding the photograph later cannot reflow the words.
+   ========================================================================== */
+.md { padding-block: clamp(3.5rem, 8vw, 6rem); }
+/* ONE column until a portrait actually exists. The two-column version was built
+   first and, with the image cell empty, left 600px of bare ink beside the quote at
+   1440 — which reads as a section that failed to load rather than as space. The
+   :has() switch means dropping <img class="md-portrait"> into the markup is the
+   whole change; nothing here needs editing when the photograph arrives. */
+.md-grid { display: grid; gap: clamp(2rem, 5vw, 4rem); }
+.md-quote { margin: 1.1rem 0 0; max-width: min(100%, 42rem); }
+@media (min-width: 900px) {
+  /* The portrait column is FIXED at 410px, not a fraction. The photograph's real
+     width is 819px once cropped to 4:5, so 410 is its exact 2x and anything wider
+     is upscaling a face — the one subject where softness is obvious. The quote
+     takes the rest. Image FIRST in the source order but placed second, so a
+     screen reader meets the words before the picture of the man saying them. */
+  .md-grid:has(.md-portrait) { grid-template-columns: minmax(0, 1fr) 410px; align-items: center; }
+  .md-grid:has(.md-portrait) .md-portrait { order: 2; }
+  .md-grid:has(.md-portrait) .md-quote { max-width: none; }
+}
+.md-portrait {
+  width: 100%; height: auto;
+  /* Capped on a phone too: at 390px full width the portrait is 1.4 screens tall
+     and pushes the quote entirely out of view. */
+  max-width: 420px;
+  border-radius: 2px;
+  /* Matches the file's own 4:5, so this is a no-op that documents the contract —
+     a replacement portrait at another ratio gets cropped, not stretched. */
+  aspect-ratio: 4 / 5; object-fit: cover;
+}
+.md-quote p {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 200;
+  font-size: clamp(1.35rem, 2.9vw, 2.15rem);
+  line-height: 1.32;
+  letter-spacing: -.005em;
+  color: var(--on-dark);
+  text-wrap: balance;
+}
+/* Hung quotes: the opening mark sits in the margin so the first word still
+   aligns with the eyebrow above it. */
+.md-quote p::before { content: "\201C"; margin-left: -.55em; }
+.md-quote p::after  { content: "\201D"; }
+.md-quote cite {
+  display: grid;
+  gap: .2rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: var(--edge);
+  font-style: normal;
+}
+.md-quote cite b { font-size: 1.0625rem; font-weight: 600; color: var(--on-dark); }
+.md-quote cite span { font-size: var(--fs-small); color: var(--on-dark-mute); }
+
+/* ==========================================================================
+   §9 CONSULT BAND
+
+   --primary-deep, NOT --primary. The copy in this band is body size and the
+   labels are smaller still: white on #ED1C2E is 4.37:1 (a fail); on #D41929 it
+   is 5.29:1. Same call as --ovmenu-bg.
+   ========================================================================== */
+.consult {
+  background: var(--primary-deep);
+  color: var(--primary-ink);
+  padding-block: var(--section);
+}
+.consult-grid {
+  display: grid;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .consult-grid { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); }
+}
+.consult h2 { margin: .5rem 0 1rem; }
+.consult .eyebrow { color: var(--primary-ink); }
+/* The colour here is not redundant with .consult's own `color`. base.css:57 sets
+   .lead's colour DIRECTLY, and a rule that targets the element always beats a
+   value the element merely inherits — specificity never enters into it. So the
+   band's white was overridden by --on-light-mute and this paragraph rendered
+   #686868 on #D41929: measured 1.05:1, which is not "low contrast", it is
+   invisible. base.css:119 already patches the same hole for .section-dark; a
+   coloured band that is neither dark nor paper falls through that gap.
+
+   Plain white (5.29:1) rather than a softened white: rgba(255,255,255,.9) —
+   the obvious way to keep the lead below the heading — composites to 4.49:1 on
+   this red and fails AA by a hair. Size and measure carry the hierarchy
+   instead. */
+.consult .lead {
+  max-width: 44ch;
+  margin-bottom: 1.25rem;
+  color: var(--primary-ink);
+}
+/* rule-link is authored for paper; on red both its rest and hover colours have
+   to come from the band's own text colour. */
+.consult .rule-link { color: var(--primary-ink); }
+.consult .rule-link::after { background: rgba(255, 255, 255, .45); }
+.consult .rule-link:hover::after { background: var(--primary-ink); }
+
+.ask { display: grid; gap: 1rem; }
+.ask-field { display: grid; gap: .4rem; }
+.ask-field label {
+  font-family: var(--sans);
+  font-weight: 700; font-size: .8125rem;
+  text-transform: uppercase; letter-spacing: .14em;
+}
+.ask-field select, .ask-field input {
+  font: inherit;
+  font-size: var(--fs-body);
+  color: var(--on-light);
+  background: var(--paper);
+  /* 1.4.11 wants 3:1 on a control's boundary. White on this red is 5.29:1, so
+     the fill itself is the boundary and no extra border colour is needed. */
+  border: 1px solid var(--paper);
+  border-radius: 0;
+  padding: .8rem .9rem;
+  width: 100%;
+}
+.ask-field input::placeholder { color: var(--on-light-mute); }
+.ask-field select:focus-visible, .ask-field input:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.ask-note {
+  margin: 0;
+  font-size: var(--fs-small);
+  /* Plain white, not rgba(255,255,255,.9). The alpha version looks like the
+     right way to sit this note below the button without a second grey, and it
+     is the one value that just misses: composited over #D41929 it computes
+     4.49:1 against a 4.5:1 requirement at 15px. Softening white on this red has
+     no headroom — the band is only 5.29:1 to begin with. */
+  color: var(--primary-ink);
+  max-width: 42ch;
+}
+
+
+/* ==========================================================================
+   THE CONFIGURATOR — specification, and therefore price, on a piece page.
+   Built by js/configurator.js into <div id="configurator">.
+
+   Hairline-ruled groups on paper, in keeping with the rest of the site: no
+   cards, no fills, just rules separating one decision from the next. The only
+   filled surface is the estimate at the bottom, because that is the one thing
+   the eye should land on.
+   ========================================================================== */
+
+/* ---- Reserved space, and why it is behind a media query ------------------
+   The panel is 1506-1822px tall and mounts into an EMPTY div, so every piece
+   page shifted its whole lower half once JavaScript ran. Measured CLS before
+   this rule:
+
+     royal_blue_gold_luxury_sofa_pair          0.4194   <- "poor" is >0.25
+     luxury_carved_dining_table_cream_chairs   0.2818
+     executive_brown_leather_tufted_chair      0.2272
+     royal_gold_carved_dining_chair            0.077
+     majesty_glame_emerald_green_velvet_bed    0.0189
+
+   Two pages were failing Core Web Vitals outright, and the failure is worst on
+   exactly the pieces with the most choices to offer.
+
+   THE VALUES ARE THE MEASURED MINIMA, never an average: 1636px is the shortest
+   panel any of the 18 pieces renders at 390px wide, 1506px the shortest at
+   744px and above. Reserving less than the true minimum means a small residual
+   shift; reserving MORE would open a visible empty gap on the shortest pieces,
+   which trades a metric for a defect. Re-measure with
+   _ref/measure-cfg-heights.mjs if the panel gains a control.
+
+   `scripting: enabled` is what keeps this honest with JavaScript off. There is
+   no configurator on a no-JS page — reserving 1630px of nothing would be a
+   1630px void, so the reservation only applies where the thing being reserved
+   for can actually arrive. Browsers without the media feature ignore the block
+   and get today's behaviour, which is the right way round for a fallback. */
+/* ---- No space is reserved for the panel, and that is a measured decision ----
+   The panel is 1506-1822px tall and mounts into an empty div, which looks like
+   the obvious CLS culprit. It is not. A `min-height` reservation was implemented,
+   measured across seven pieces at four breakpoints, and removed again: CLS did
+   not improve, because **layout shift only counts content inside the viewport**
+   and #configurator sits roughly 2000px down the page on a phone. Nothing
+   visible moves when it mounts.
+
+   Reading layout-shift `sources` instead of guessing found the actual cause, and
+   it was not on this page at all — `body:has(.pill-head)` could not match until
+   js/chrome.js inserted the header, so the whole document shifted down by
+   --dock-h once JavaScript ran. Fixed at css/nav.css by keying the padding off
+   the static `body[data-depth]` attribute.
+
+   Left as a comment rather than as a rule, because a reservation here costs a
+   possible empty gap on the shortest pieces and buys nothing. Re-measure with
+   _ref/measure-shift-sources.mjs before adding one back. */
+
+.cfg { margin-top: 2rem; }
+
+/* ---- A dimension that is stated, not chosen ------------------------------
+   24 of the catalogue's 54 dimensions are not variables: a gas-lift seat height,
+   a bought-in five-star base, the 78cm every dining table shares, a bed frame
+   built to the customer's own mattress. js/configurator.js renders those as a
+   value and a reason instead of a slider.
+
+   NOT a disabled slider, which was the alternative and is worse — a greyed-out
+   control reads as broken, or as something to unlock. A fact with an explanation
+   reads as a specification, which is what it is. The row therefore drops the
+   track entirely and keeps the same label/value line as its sliding neighbours,
+   so a piece with two of each still scans as one list. */
+.cfg-row--fixed { padding-block: .35rem; }
+.cfg-row--fixed .cfg-fixed-label {
+  font-size: var(--fs-small); font-weight: 600; letter-spacing: .02em;
+}
+.cfg-row--fixed .cfg-val { color: var(--on-light); }
+/* The material ladders on /materials/, generated from MATERIAL_TIERS. Numbered,
+   because the order is the point: rung 1 is what the listed price buys. */
+.mat-ladder { counter-reset: rung; list-style: none; padding-left: 0; }
+.mat-ladder li { counter-increment: rung; }
+.mat-ladder li::before {
+  content: counter(rung);
+  display: inline-block; width: 1.4em;
+  color: var(--primary-deep); font-weight: 700; font-size: .8em;
+}
+.mat-ladder b { font-weight: 600; }
+.mat-ladder i { color: var(--on-light-mute); font-style: normal; font-size: .92em; }
+
+.cfg-fixed-note {
+  margin: .15rem 0 0; font-size: .8125rem; line-height: 1.45;
+  color: var(--on-light-mute);
+}
+.cfg-intro {
+  margin: .6rem 0 0; font-size: var(--fs-small); color: var(--on-light-mute);
+  max-width: 46ch;
+}
+
+/* <fieldset> ships with a border and padding in every UA, and its <legend> has
+   its own box model. Both are reset so a group is only a rule and a label. */
+.cfg-group {
+  margin: 1.75rem 0 0; padding: 1.25rem 0 0;
+  border: 0; border-top: 1px solid var(--hair);
+}
+/* NOT floated. The usual `float: left; width: 100%` legend trick exists to
+   escape the fieldset's border notch — and this fieldset has `border: 0`, so
+   there is no notch to escape. Floating it caused a real 110px horizontal
+   overflow at every width: `.cfg-tiers` is display:grid, a grid container
+   establishes its own formatting context and therefore must not overlap a
+   float, so it shifted right by the full width of a 100%-wide float and pushed
+   the document past the viewport. Measured: scrollWidth 485 in a 375 viewport.
+   `display: block` on the legend gives the same layout with none of that. */
+.cfg-group legend {
+  padding: 0; display: block; width: 100%;
+  font-size: .8125rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-fade);
+}
+
+/* ---- Dimension sliders -------------------------------------------------- */
+.cfg-row { margin-top: 1.1rem; }
+.cfg-row-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+}
+.cfg-row-top label { font-size: var(--fs-small); font-weight: 600; }
+.cfg-val {
+  font-family: var(--display); font-weight: 300;
+  font-size: 1.15rem; letter-spacing: .03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--on-light);
+}
+/* A quiet marker for "this is the published size", so a visitor can find their
+   way back to standard without reading the scale underneath. */
+.cfg-val[data-std="true"]::after {
+  content: " standard";
+  font-family: var(--sans); font-size: .8125rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--on-light-mute);
+}
+.cfg-ends {
+  margin: .3rem 0 0;
+  display: flex; justify-content: space-between; gap: .5rem;
+  font-size: .8125rem; color: var(--on-light-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is --ghost with a red thumb: the one moving part gets the signal
+   colour, and 44px of vertical hit area on a 4px visual track. */
+.cfg-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; margin: .35rem 0 0;
+  background: transparent; cursor: pointer;
+}
+.cfg-range::-webkit-slider-runnable-track { height: 4px; background: var(--ghost); }
+.cfg-range::-moz-range-track { height: 4px; background: var(--ghost); }
+.cfg-range::-moz-range-progress { height: 4px; background: var(--primary); }
+.cfg-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 28px; height: 28px; margin-top: -12px;
+  background: var(--primary-deep); border: 0; border-radius: 50%;
+}
+.cfg-range::-moz-range-thumb {
+  width: 28px; height: 28px;
+  background: var(--primary-deep); border: 0; border-radius: 50%;
+}
+.cfg-range:focus-visible { outline: 3px solid var(--ar-signal); outline-offset: 4px; }
+
+/* Senior-friendly stepper controls (- and + buttons flanking slider) */
+.cfg-slider-stepper {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  margin-top: .35rem;
+}
+.cfg-slider-stepper .cfg-range {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+.cfg-step-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--paper-2);
+  border: 1px solid var(--hair-strong);
+  border-radius: 4px;
+  color: var(--on-light);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition: all var(--dur) var(--ease);
+}
+.cfg-step-btn:hover {
+  background: var(--paper);
+  border-color: var(--primary);
+  color: var(--primary-deep);
+}
+.cfg-step-btn:active {
+  background: var(--ghost);
+  transform: scale(0.96);
+}
+.cfg-step-btn:focus-visible {
+  outline: 3px solid var(--ar-signal);
+  outline-offset: 2px;
+}
+
+/* ---- Material tiers -----------------------------------------------------
+   Stacked rows rather than a segmented control: each tier carries a name, a
+   note and a price delta, which will not fit three-across on a phone. The
+   native radio is hidden from sight but not from the accessibility tree or the
+   keyboard — `appearance: none` with a real focus ring on the label. */
+.cfg-tiers { display: grid; gap: .5rem; margin-top: .9rem; }
+.cfg-tier {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: .75rem;
+  min-height: 56px; padding: .6rem .9rem;
+  border: 1px solid var(--hair);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.cfg-tier:hover { border-color: var(--hair-strong); }
+.cfg-tier input {
+  appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; margin: 0;
+  border: 1px solid var(--hair-strong); border-radius: 50%;
+  display: grid; place-items: center;
+}
+.cfg-tier input::after {
+  content: ""; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--primary-deep); transform: scale(0);
+  transition: transform var(--dur) var(--ease);
+}
+.cfg-tier input:checked::after { transform: scale(1); }
+.cfg-tier input:checked { border-color: var(--primary-deep); }
+/* The whole row shows selection, not just the dot — colour alone is never the
+   only signal, and the border weight reads at a glance. */
+.cfg-tier:has(input:checked) { border-color: var(--on-light); background: var(--paper-2); }
+.cfg-tier:focus-within { outline: 3px solid var(--ar-signal); outline-offset: 2px; }
+.cfg-tier-text { display: grid; gap: .1rem; min-width: 0; }
+.cfg-tier-text b { font-size: var(--fs-small); font-weight: 600; }
+.cfg-tier-text i {
+  font-style: normal; font-size: .8125rem; color: var(--on-light-mute);
+}
+.cfg-tier-delta {
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--on-light-mute); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Finish chips ------------------------------------------------------- */
+.cfg-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+
+/* ---- Add-ons ------------------------------------------------------------
+   Exclusive groups (delivery) get their own rule so they read as one decision
+   rather than two unrelated options. */
+.cfg-exclusive {
+  display: grid; gap: .2rem;
+  margin: .9rem 0; padding-bottom: .9rem;
+  border-bottom: 1px solid var(--hair);
+}
+.cfg-addon {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: .7rem;
+  min-height: 44px; padding: .35rem 0;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.cfg-addon input {
+  appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; margin: 0;
+  border: 1px solid var(--hair-strong);
+  display: grid; place-items: center;
+}
+.cfg-addon input[type="radio"] { border-radius: 50%; }
+.cfg-addon input:checked { background: var(--on-light); border-color: var(--on-light); }
+.cfg-addon input:checked::after {
+  content: ""; width: 9px; height: 9px; background: var(--paper);
+}
+.cfg-addon input[type="radio"]:checked::after { border-radius: 50%; }
+.cfg-addon:focus-within { outline: 3px solid var(--ar-signal); outline-offset: 2px; }
+.cfg-addon-price {
+  font-weight: 600; color: var(--on-light-mute); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The estimate, and the two order controls ---------------------------
+   The one filled surface in the panel. Everything above it is a decision;
+   this is the consequence, so it gets the weight. */
+.cfg-total {
+  margin-top: 1.75rem; padding: 1.35rem;
+  background: var(--paper-2); border: 1px solid var(--hair);
+}
+.cfg-total-line {
+  margin: 0;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  font-size: .8125rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-mute);
+}
+/* Display weight 200, matching the site's headline law. Tabular figures so the
+   number does not jitter horizontally as a slider moves. */
+.cfg-price {
+  font-family: var(--display); font-weight: 200;
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  letter-spacing: .02em; line-height: 1;
+  text-transform: none;
+  color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+}
+.cfg-breakdown {
+  margin: .5rem 0 0; font-size: .8125rem; color: var(--on-light-mute);
+}
+.cfg-reset { display: inline-block; margin-top: .5rem; font-size: var(--fs-small); }
+.cfg-reset[hidden] { display: none; }
+/* Order now above Add to cart on phones, side by side once there is room.
+   `1fr auto` rather than two equal columns: the primary keeps its width and the
+   secondary sizes to its label. */
+.cfg-actions { display: grid; gap: .75rem; margin-top: 1.1rem; }
+@media (min-width: 520px) {
+  .cfg-actions { grid-template-columns: 1fr auto; align-items: center; }
+}
+/* Curated Workshop Standard card */
+.cfg-curated {
+  margin-top: 1.25rem;
+  padding: 1.25rem 1.35rem;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  border-left: 3px solid var(--primary);
+}
+.cfg-curated-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .4rem;
+}
+.cfg-curated-badge {
+  display: inline-block;
+  font-size: .8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--primary-deep);
+}
+.cfg-curated-price {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--primary-deep);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cfg-curated-title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  color: var(--on-light);
+}
+.cfg-curated-desc {
+  margin: .35rem 0 0;
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+  line-height: 1.45;
+}
+.cfg-curated-spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1.5rem;
+  margin-top: .85rem;
+  padding-top: .85rem;
+  border-top: 1px solid var(--hair);
+  font-size: var(--fs-small);
+}
+.cfg-curated-spec span {
+  display: inline-flex;
+  gap: .35rem;
+  color: var(--on-light-mute);
+}
+.cfg-curated-spec strong {
+  color: var(--on-light);
+}
+
+/* Progressive Disclosure Accordion Toggle */
+.cfg-advanced-toggle {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--paper);
+  border: 1.5px dashed var(--hair-strong);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--dur) var(--ease);
+}
+.cfg-advanced-toggle:hover {
+  border-color: var(--primary);
+  background: var(--paper-2);
+}
+.cfg-advanced-toggle:focus-visible {
+  outline: 3px solid var(--ar-signal);
+  outline-offset: 2px;
+}
+.cfg-toggle-text {
+  display: grid;
+  gap: .2rem;
+}
+.cfg-toggle-title {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--on-light);
+}
+.cfg-toggle-sub {
+  font-size: .8125rem;
+  color: var(--on-light-mute);
+}
+.cfg-toggle-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--on-light-mute);
+  transition: transform var(--dur) var(--ease);
+}
+.cfg-advanced-toggle[aria-expanded="true"] .cfg-toggle-icon {
+  transform: rotate(180deg);
+}
+.cfg-advanced-toggle[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--hair-strong);
+}
+
+.cfg-advanced {
+  transition: opacity var(--dur) var(--ease);
+}
+.cfg-advanced[hidden] {
+  display: none;
+}
+
+/* VIP WhatsApp Button */
+.btn--wa {
+  background: #128C7E;
+  border-color: #128C7E;
+  color: #FFFFFF !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  font-weight: 600;
+}
+.btn--wa:hover {
+  background: #075E54;
+  border-color: #075E54;
+  color: #FFFFFF !important;
+}
+.btn--wa svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* The demoted WhatsApp link under the panel. */
+.piece-ask { margin-top: 1.25rem; }
+
+/* ---- Task 3: collections piece grid reservation to eliminate CLS -------- */
+@media (scripting: enabled) {
+  #piece-grid { min-height: 800px; }
+  @media (min-width: 900px) {
+    #piece-grid { min-height: 1200px; }
+  }
+}
+
+/* ==========================================================================
+   THE CART — /cart/, built by js/cart.js.
+
+   Five columns on desktop: thumbnail, details, quantity, money, remove. On a
+   phone that becomes a 2x2 block plus a full-width money row, because five
+   columns at 375px gives every one of them about 60px.
+
+   It reuses .room-qty / .qty-btn / .qty-input from the order-board work above
+   rather than forking a second stepper — same control, same clamp, same 44px
+   targets.
+   ========================================================================== */
+.cart-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-areas: "thumb body" "qty money" "remove remove";
+  gap: .85rem 1rem;
+  align-items: center;
+  background: transparent; border: var(--edge-dk); padding: .85rem;
+}
+@media (min-width: 700px) {
+  .cart-item {
+    grid-template-columns: 92px minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "thumb body qty money remove";
+  }
+}
+.cart-thumb  { grid-area: thumb; display: block; }
+.cart-body   { grid-area: body; min-width: 0; }
+.cart-item .room-qty { grid-area: qty; }
+.cart-money  { grid-area: money; text-align: right; }
+.cart-remove { grid-area: remove; justify-self: start; }
+@media (min-width: 700px) { .cart-remove { justify-self: auto; } }
+
+/* Cut-outs, so `contain` — cropping to fill would eat the 8% alpha margin. */
+.cart-item img { width: 92px; height: 92px; object-fit: contain; padding: 0; }
+.cart-item h3 { margin: 0 0 .2rem; font-size: 1.1rem; }
+.cart-item h3 a { text-decoration: none; }
+.cart-item h3 a:hover { color: var(--primary-deep); }
+.cart-cat {
+  margin: 0; font-size: .6875rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--on-light-fade);
+}
+/* The full configuration as one readable line — the same string that goes into
+   the order email, so what was approved is what the workshop receives. */
+.cart-spec {
+  margin: .4rem 0 0; font-size: .8125rem; color: var(--on-light-mute);
+  max-width: 52ch;
+}
+.cart-edit { margin-top: .3rem; font-size: .8125rem; min-height: 0; padding: 2px 0 6px; }
+
+.cart-line-total {
+  display: block;
+  font-family: var(--display); font-weight: 300;
+  font-size: 1.15rem; letter-spacing: .03em;
+  color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cart-each {
+  display: block; margin-top: .15rem;
+  font-size: .75rem; color: var(--on-light-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The summary bar ---------------------------------------------------- */
+.cart-sum {
+  margin: 2rem 0 0; padding-top: 1.1rem;
+  border-top: 1px solid var(--hair);
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: .6rem 1rem;
+  font-size: .75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-mute);
+}
+.cart-sum-total { display: flex; align-items: baseline; gap: .7rem; }
+.cart-sum-total b {
+  font-family: var(--display); font-weight: 200;
+  font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+  letter-spacing: .02em; text-transform: none;
+  color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   CHECKOUT — /checkout/
+   Form on the left, order summary on the right; stacked on phones with the
+   summary FIRST, so a customer sees what they are buying before they type.
+   ========================================================================== */
+#co-main { display: grid; gap: 2rem; margin-top: 2.5rem; }
+@media (min-width: 860px) {
+  #co-main { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 3rem; align-items: start; }
+  .co-summary { order: 2; }
+  .co-form { order: 1; }
+}
+@media (max-width: 859px) {
+  .co-summary { order: -1; }
+}
+/* Name and phone pair up once there is room. align-items: start stops input stretching. */
+.co-grid { display: grid; gap: 0 1rem; align-items: start; }
+@media (min-width: 560px) { .co-grid { grid-template-columns: 1fr 1fr; } }
+
+.co-summary {
+  padding: 1.35rem;
+  background: var(--paper-2); border: 1px solid var(--hair);
+}
+.co-summary h2 {
+  margin: 0 0 1rem; font-size: .75rem; font-weight: 700;
+  font-family: var(--sans);
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-fade);
+}
+.co-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.co-lines li { padding-bottom: 1rem; border-bottom: 1px solid var(--hair); }
+.co-lines li:last-child { border-bottom: 0; padding-bottom: 0; }
+.co-line-top {
+  margin: 0; display: flex; justify-content: space-between; gap: 1rem;
+  font-size: var(--fs-small);
+}
+.co-line-top span { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.co-line-spec { margin: .3rem 0 0; font-size: .75rem; color: var(--on-light-mute); }
+.co-line-each {
+  margin: .2rem 0 0; font-size: .75rem; color: var(--on-light-mute);
+  font-variant-numeric: tabular-nums;
+}
+.co-summary .cart-sum { margin-top: 1.25rem; }
+
+/* ---- Validation messages ------------------------------------------------
+   Deep red, not the bright signal: these are 15px body-size text on paper, so
+   they owe the full 4.5:1 — #ED1C2E is 4.37:1 and fails, #D41929 is 5.29:1. */
+.field-err {
+  margin: .35rem 0 0; font-size: .8125rem; font-weight: 600;
+  color: var(--primary-deep);
+}
+.field-err[hidden] { display: none; }
+/* An invalid field takes a red boundary as well as the message, so the error is
+   attached to the control and not just floating under it. */
+.field input[aria-invalid="true"],
+.field textarea[aria-invalid="true"] { border-color: var(--primary-deep); }
+.co-form-err {
+  margin-top: 1.25rem; padding: 1rem 1.1rem;
+  background: var(--paper-2);
+  border: 1px solid var(--primary-deep); border-left-width: 3px;
+  font-weight: 400; color: var(--on-light);
+}
+
+/* ---- Confirmation page -------------------------------------------------- */
+.ty-h {
+  margin: 2.5rem 0 0;
+  font-family: var(--sans);
+  font-size: .75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--on-light-fade);
+}
+.ty-actions {
+  margin-top: 2.5rem;
+  display: flex; flex-wrap: wrap; gap: .85rem;
+}
+/* [hidden] has to beat the flex/grid display the buttons carry, the same trap
+   .ar-row hit: an element with display set by a rule ignores the attribute. */
+.ty-actions .btn[hidden] { display: none; }
+
+/* ==========================================================================
+   BENGALI TYPOGRAPHY OVERRIDES — html[lang="bn"]
+   Ensures authentic script rendering without Latin-style extreme letter spacing
+   or artificial uppercase, matching Bengali calligraphic flow.
+   ========================================================================== */
+html[lang="bn"] h1,
+html[lang="bn"] h2,
+html[lang="bn"] h3 {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+html[lang="bn"] .eyebrow,
+html[lang="bn"] .plink a,
+html[lang="bn"] .cfg-group legend,
+html[lang="bn"] .cfg-curated-badge,
+html[lang="bn"] .btn,
+html[lang="bn"] .nav a,
+html[lang="bn"] .room-total,
+html[lang="bn"] .pill-brand,
+html[lang="bn"] .pill-cta,
+html[lang="bn"] .ovlist a,
+html[lang="bn"] .ov-corner,
+html[lang="bn"] .foot-rail a {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ==========================================================================
+   INTERACTIVE GOOGLE MAP CONTAINER — Showroom & Contact
+   ========================================================================== */
+.map-container {
+  border: var(--edge-dk);
+  border-radius: var(--btn-r);
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 4px 20px rgba(17, 18, 25, .04);
+}
+.map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--paper-2);
+  border-bottom: var(--edge-dk);
+}
+.map-frame {
+  position: relative;
+  width: 100%;
+  background: #E5E3DF;
+}
+.map-frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+@media (max-width: 599px) {
+  .map-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: 1rem 1.2rem;
+  }
+  .map-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---- Mobile Sticky Price & CTA Bar (Plan 1.6) --------------------------- */
+.piece-sticky-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .piece-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 85;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border-top: 1px solid var(--hair);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(105%);
+    transition: transform var(--dur) var(--ease);
+    pointer-events: none;
+  }
+
+  .piece-sticky-bar.piece-sticky-bar--visible {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .piece-sticky-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .piece-sticky-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--on-light-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .piece-sticky-price {
+    font-family: var(--display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-deep);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .piece-sticky-actions {
+    flex-shrink: 0;
+  }
+
+  .piece-sticky-btn {
+    min-height: 42px;
+    padding: 9px 18px;
+    font-size: 0.875rem;
+    border-radius: var(--btn-r-sm);
+  }
+}
+
+/* ==========================================================================
+   §10/10 MASTERWORK EXPANSION MODULES
+   Pillars · Before/After Slider · Case Studies · Quick Estimator · FAQs · Concierge · Spec Sheet
+   ========================================================================== */
+
+/* 1. Four Pillars of Craftsmanship */
+.pillars-sec {
+  background: var(--paper-2);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.pillars-ctrl-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.85rem;
+  margin-bottom: 0.25rem;
+}
+.pillars-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  padding: 4px;
+  box-shadow: 0 2px 10px rgba(17, 18, 25, 0.04);
+  gap: 4px;
+  max-width: 100%;
+}
+.pillars-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--on-light-mute);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.pillars-toggle-btn svg {
+  flex: none;
+  transition: transform var(--dur) var(--ease);
+}
+.pillars-toggle-btn:focus-visible {
+  outline: 2px solid var(--ar-signal);
+  outline-offset: 2px;
+}
+.pillars-toggle-btn[data-mode="heaven"].is-active,
+.pillars-toggle-btn[data-mode="market"].is-active {
+  background: var(--ink);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(17, 18, 25, 0.16);
+}
+@media (max-width: 599px) {
+  .pillars-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  .pillars-toggle-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+  margin-top: 2rem;
+}
+.pillar-card {
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: var(--btn-r-sm);
+  padding: 2.2rem 1.6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  contain: content;
+  will-change: transform;
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.pillar-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  border-radius: var(--btn-r-sm) var(--btn-r-sm) 0 0;
+  transition: background var(--dur) var(--ease);
+}
+.pillar-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--hair-strong);
+  box-shadow: 0 16px 36px rgba(17, 18, 25, 0.08);
+}
+.pillar-index {
+  position: absolute;
+  top: 1.15rem;
+  right: 1.35rem;
+  font-family: var(--display);
+  font-size: 2.6rem;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--ink);
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.pillar-card:hover .pillar-index {
+  opacity: 0.28;
+  color: var(--ink);
+}
+.pillar-badge-svg {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(17, 18, 25, 0.04);
+  color: var(--ink);
+  border: 1px solid var(--hair);
+  margin-bottom: 1.15rem;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pillar-card:hover .pillar-badge-svg {
+  background: var(--ink);
+  color: #FFFFFF;
+  border-color: var(--ink);
+  transform: scale(1.05);
+}
+.pillar-spec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(17, 18, 25, 0.05);
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  width: fit-content;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.pillar-metric {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 4.5vw, 3.4rem);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.65rem;
+  display: block;
+  transition: color var(--dur) var(--ease);
+}
+.pillar-title {
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--on-light);
+  margin: 0 0 0.25rem;
+  text-transform: none;
+}
+.pillar-subtitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary-deep);
+  margin-bottom: 0.85rem;
+  display: block;
+  transition: color var(--dur) var(--ease);
+}
+.pillar-desc {
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--on-light-mute);
+  margin: 0;
+}
+.pillar-content-fade {
+  transition: opacity 0.2s var(--ease);
+}
+.pillar-content-fade.is-fading {
+  opacity: 0;
+}
+
+/* Market Comparison State Overrides — strictly within the 3-color palette */
+.pillars-grid.is-market .pillar-card::before {
+  background: var(--hair-strong);
+}
+.pillars-grid.is-market .pillar-card:hover {
+  border-color: var(--hair-strong);
+  box-shadow: 0 16px 36px rgba(17, 18, 25, 0.08);
+}
+.pillars-grid.is-market .pillar-card:hover .pillar-index {
+  color: var(--on-light-mute);
+  opacity: 0.25;
+}
+.pillars-grid.is-market .pillar-badge-svg {
+  background: rgba(17, 18, 25, 0.03);
+  color: var(--on-light-mute);
+  border-color: var(--hair);
+}
+.pillars-grid.is-market .pillar-card:hover .pillar-badge-svg {
+  background: var(--on-light-mute);
+  color: #FFFFFF;
+  border-color: var(--on-light-mute);
+}
+.pillars-grid.is-market .pillar-spec-pill {
+  background: rgba(17, 18, 25, 0.04);
+  color: var(--on-light-mute);
+}
+.pillars-grid.is-market .pillar-metric {
+  color: var(--on-light);
+}
+.pillars-grid.is-market .pillar-subtitle {
+  color: var(--primary-deep);
+}
+
+
+/* 2. Interactive Before/After Space Transformation Slider */
+.ba-sec {
+  background: var(--paper);
+  overflow: hidden;
+}
+.ba-slider {
+  --ba-split: 50%;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1267 / 845;
+  margin: 2.5rem auto 0;
+  border-radius: var(--btn-r);
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(17, 18, 25, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  cursor: grab;
+  background: #111219;
+}
+.ba-slider.ba-dragging {
+  cursor: grabbing;
+}
+.ba-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.ba-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ba-layer--before {
+  z-index: 2;
+  clip-path: inset(0 calc(100% - var(--ba-split)) 0 0);
+  will-change: clip-path;
+}
+.ba-layer--after {
+  z-index: 1;
+}
+.ba-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--ba-split);
+  width: 52px;
+  margin-left: -26px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  outline: none;
+}
+.ba-handle-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  border-left: 1.5px dashed rgba(255, 255, 255, 0.45);
+  opacity: 0.35;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  pointer-events: none;
+}
+.ba-slider:hover .ba-handle-line,
+.ba-slider.ba-dragging .ba-handle-line,
+.ba-slider[data-active-dir="x"] .ba-handle-line {
+  opacity: 1;
+  border-left-color: #FFFFFF;
+}
+.ba-handle-knob {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background: rgba(17, 18, 25, 0.52);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  color: #FFFFFF;
+  pointer-events: auto;
+  cursor: grab;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              background 0.2s ease,
+              box-shadow 0.2s ease;
+}
+.ba-handle-knob::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  pointer-events: none;
+  transition: border-color 0.2s ease;
+}
+.ba-slider:hover .ba-handle-knob {
+  border-color: #FFFFFF;
+  background: rgba(17, 18, 25, 0.68);
+}
+.ba-slider:hover .ba-handle-knob::before {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.ba-handle:focus-visible .ba-handle-knob {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.ba-slider.ba-dragging .ba-handle-knob {
+  cursor: grabbing;
+  transform: scale(1.08);
+  border-color: #FFFFFF;
+  background: rgba(17, 18, 25, 0.82);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.ba-slider.ba-dragging .ba-handle-knob::before {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.ba-handle-knob svg {
+  width: 22px;
+  height: 22px;
+  stroke: #FFFFFF;
+  opacity: 0.9;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ba-slider.ba-dragging .ba-handle-knob svg {
+  opacity: 1;
+}
+.ba-badge {
+  position: absolute;
+  top: clamp(12px, 2.5vw, 24px);
+  z-index: 4;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(17, 18, 25, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #FFFFFF;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.ba-badge--before { left: clamp(12px, 2.5vw, 24px); }
+.ba-badge--after { right: clamp(12px, 2.5vw, 24px); }
+@media (max-width: 599px) {
+  .ba-badge {
+    padding: 4px 9px;
+    font-size: 0.625rem;
+    letter-spacing: 0.05em;
+  }
+  .ba-handle {
+    width: 44px;
+    margin-left: -22px;
+  }
+  .ba-handle-knob {
+    width: 44px;
+    height: 44px;
+  }
+}
+.ba-hint-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+  font-weight: 500;
+}
+.ba-hint-tag svg {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
+  animation: ba-nudge 2s infinite ease-in-out;
+}
+@keyframes ba-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+/* 3. Curated Chattogram Residence Case Studies */
+.cases-sec {
+  background: var(--paper);
+}
+.cases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+  margin-top: 2.75rem;
+}
+.case-card {
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: var(--btn-r-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.case-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--hair-strong);
+  box-shadow: 0 16px 40px rgba(17, 18, 25, 0.09);
+}
+.case-img-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: #111219;
+  overflow: hidden;
+}
+.case-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s var(--ease);
+}
+.case-card:hover .case-img-wrap img {
+  transform: scale(1.04);
+}
+.case-lead-tag {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(17, 18, 25, 0.85);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.case-body {
+  padding: 1.5rem 1.4rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.case-loc {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7A5C1E;
+  margin-bottom: 0.5rem;
+}
+.case-loc svg { width: 14px; height: 14px; flex: none; }
+.case-title {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  margin: 0 0 1rem;
+}
+.case-meta-list {
+  list-style: none;
+  margin: 0 0 1.15rem;
+  padding: 0;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.case-meta-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  font-size: 0.8125rem;
+  border-bottom: 1px dashed rgba(0,0,0,0.06);
+}
+.case-meta-item:last-child { border-bottom: 0; }
+.case-meta-k {
+  color: var(--on-light-mute);
+  font-weight: 500;
+}
+.case-meta-v {
+  color: var(--on-light);
+  font-weight: 600;
+  text-align: right;
+}
+.case-desc {
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--on-light-mute);
+  margin: 0;
+  flex: 1;
+}
+
+/* 4. Interactive Timber & Budget Quick-Estimator */
+.est-sec {
+  background: var(--paper-2);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.est-container {
+  margin-top: 2.75rem;
+}
+.est-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+@media (min-width: 960px) {
+  .est-grid {
+    grid-template-columns: 1.35fr 1fr;
+    align-items: start;
+  }
+}
+.est-ctrls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.85rem;
+}
+.est-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.est-step-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--on-light);
+}
+.est-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.est-pill {
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+}
+.est-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.est-pill span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: var(--btn-r-sm);
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--on-light);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.est-pill:hover span {
+  border-color: var(--hair-strong);
+}
+.est-pill input:checked + span {
+  background: var(--on-light);
+  border-color: var(--on-light);
+  color: var(--paper);
+  font-weight: 600;
+}
+.est-pill input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.est-result-card {
+  background: #111219;
+  color: #FFFFFF;
+  border-radius: var(--btn-r);
+  padding: clamp(1.75rem, 3.5vw, 2.5rem);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.28);
+  position: sticky;
+  top: calc(var(--dock-h) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.est-result-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.est-res-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #C5A059;
+}
+.est-price-val {
+  font-family: var(--display);
+  font-size: clamp(1.85rem, 3.5vw, 2.4rem);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.est-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-block: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.est-lead-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+.est-lead-box svg {
+  width: 18px;
+  height: 18px;
+  color: #C5A059;
+  flex: none;
+}
+.est-lead-val {
+  font-weight: 600;
+  color: #FFFFFF;
+}
+.est-wa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 52px;
+  padding: 0 1.5rem;
+  border-radius: var(--btn-r-sm);
+  background: var(--primary-deep);
+  color: #FFFFFF;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.est-wa-btn:hover {
+  background: var(--primary);
+  transform: translateY(-2px);
+}
+.est-wa-btn svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.est-note {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--on-dark-mute);
+  margin: 0;
+}
+
+/* 5. Client Objection FAQ Accordion */
+.faq-sec {
+  background: var(--paper);
+}
+.faq-wrap {
+  max-width: 860px;
+  margin-inline: auto;
+}
+.faq-list {
+  margin: 2.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hair);
+}
+.faq-item {
+  border-bottom: 1px solid var(--hair);
+}
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.4rem 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--on-light);
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  transition: color var(--dur) var(--ease);
+}
+.faq-question:hover {
+  color: var(--primary-deep);
+}
+.faq-question:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+.faq-icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ghost);
+  color: var(--on-light);
+  transition: transform 0.3s var(--ease), background 0.3s var(--ease), color 0.3s var(--ease);
+}
+.faq-icon svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s var(--ease);
+}
+.faq-item[data-open="true"] .faq-icon {
+  background: var(--primary-deep);
+  color: #FFFFFF;
+  transform: rotate(180deg);
+}
+.faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s var(--ease);
+}
+.faq-item[data-open="true"] .faq-answer {
+  grid-template-rows: 1fr;
+}
+.faq-answer-inner {
+  overflow: hidden;
+}
+.faq-answer-inner p {
+  padding-bottom: 1.5rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--on-light-mute);
+}
+
+/* 6. VIP Concierge Consultation Modal & Drawer */
+.concierge-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+.concierge-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+.concierge-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 18, 25, 0.78);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.concierge-drawer {
+  position: relative;
+  z-index: 2;
+  background: var(--paper);
+  border-radius: var(--btn-r);
+  width: min(100%, 860px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  transform: translateY(24px) scale(0.98);
+  transition: transform 0.35s var(--ease);
+}
+.concierge-modal.is-open .concierge-drawer {
+  transform: translateY(0) scale(1);
+}
+.concierge-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--hair);
+}
+.concierge-title {
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.4rem;
+}
+.concierge-sub {
+  font-size: var(--fs-small);
+  color: var(--on-light-mute);
+  margin: 0;
+}
+.concierge-close-btn {
+  background: none;
+  border: 0;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--on-light-mute);
+  padding: 4px;
+}
+.concierge-close-btn:hover { color: var(--on-light); }
+.concierge-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 1.25rem;
+}
+.concierge-tier {
+  border: 1px solid var(--hair);
+  border-radius: var(--btn-r-sm);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  background: var(--paper-2);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.concierge-tier:hover {
+  border-color: #C5A059;
+  box-shadow: 0 8px 24px rgba(17, 18, 25, 0.08);
+}
+.concierge-tier-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7A5C1E;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.concierge-tier-title {
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.concierge-tier-desc {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--on-light-mute);
+  margin: 0;
+}
+.concierge-tier-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: var(--btn-r-sm);
+  background: var(--on-light);
+  color: var(--paper);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background var(--dur) var(--ease);
+}
+.concierge-tier-btn:hover {
+  background: var(--primary-deep);
+}
+
+/* 7. Architectural Specification Sheet & Modal */
+.spec-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+.spec-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+.spec-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 18, 25, 0.82);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.spec-dialog {
+  position: relative;
+  z-index: 2;
+  background: #FFFFFF;
+  color: #191919;
+  border-radius: var(--btn-r);
+  width: min(100%, 780px);
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: clamp(1.5rem, 3.5vw, 2.5rem);
+  box-shadow: 0 28px 72px rgba(0,0,0,0.4);
+}
+.spec-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hair);
+}
+.spec-close-btn {
+  background: none;
+  border: 0;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--on-light-mute);
+}
+.spec-document {
+  border: 1px solid #191919;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: #FFFFFF;
+}
+.spec-doc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  border-bottom: 2px solid #191919;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.spec-brand-kicker {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #888888;
+  display: block;
+}
+.spec-doc-title {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0.25rem;
+}
+.spec-doc-sub {
+  font-size: 0.75rem;
+  color: #666666;
+  margin: 0;
+}
+.spec-badge-box {
+  background: #F4F4F4;
+  border: 1px solid #DDDDDD;
+  padding: 4px 10px;
+  text-align: right;
+}
+.spec-ref-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #777777;
+  display: block;
+}
+.spec-ref-code {
+  font-family: monospace;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+.spec-doc-date {
+  font-size: 0.6875rem;
+  color: #888888;
+  display: block;
+  text-align: right;
+  margin-top: 0.25rem;
+}
+.spec-sec-highlight {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  background: #F9F9F9;
+  padding: 1rem;
+  border: 1px solid #EEEEEE;
+  margin-bottom: 1.5rem;
+}
+.spec-prop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.spec-prop-k {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #777777;
+}
+.spec-prop-v {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #191919;
+}
+.spec-table-detail {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+.spec-table-detail th,
+.spec-table-detail td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #E5E5E5;
+  text-align: left;
+}
+.spec-table-detail th {
+  width: 40%;
+  color: #555555;
+  font-weight: 500;
+}
+.spec-row-total {
+  border-top: 2px solid #191919;
+  border-bottom: 2px solid #191919;
+  font-size: 1rem;
+}
+.spec-row-total th,
+.spec-row-total td {
+  padding: 1rem 0.5rem;
+  font-weight: 700;
+}
+.spec-price-tag {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  color: #B01521;
+}
+.spec-pillars-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #E5E5E5;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.spec-pillar-badge b {
+  display: block;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  color: #7A5C1E;
+}
+.spec-pillar-badge span {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #666666;
+}
+.spec-doc-foot {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #666666;
+}
+.spec-sign-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+.spec-sign-box {
+  width: 200px;
+}
+.spec-sign-line {
+  display: block;
+  border-bottom: 1px solid #191919;
+  margin-bottom: 0.4rem;
+  height: 24px;
+}
+
+/* --- Cash Memo Modal & Print Styles --- */
+.memo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+.memo-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+.memo-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 18, 25, 0.85);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.memo-dialog {
+  position: relative;
+  z-index: 2;
+  background: #ECECEE;
+  color: #191919;
+  border-radius: var(--btn-r, 4px);
+  width: min(100%, 880px);
+  max-height: 94vh;
+  overflow-y: auto;
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  box-shadow: 0 28px 72px rgba(0,0,0,0.45);
+}
+.memo-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid #D5D5D5;
+}
+.memo-close-btn {
+  background: none;
+  border: 0;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #555555;
+  padding: 0 0.5rem;
+  transition: color 0.15s ease;
+}
+.memo-close-btn:hover {
+  color: #191919;
+}
+.memo-content-wrapper {
+  display: flex;
+  justify-content: center;
+}
+.memo-content-wrapper .memo-document {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+  max-width: 100%;
+}
+
+/* The "generating PDF" spinner in js/cashmemo.js asks for `animation: spin`.
+   No such keyframe existed anywhere in the six sheets, so the icon sat still
+   while html2canvas rasterised — the one moment the user needs to see that
+   something is happening. Honours prefers-reduced-motion via the global
+   reset in css/tokens.css. */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Printing the spec sheet and the cash memo ----------------------------
+   SCOPED TO body.printing-document ON PURPOSE. An unscoped `body * { visibility:
+   hidden }` hid every page on the site: the two documents this block reveals are
+   built lazily by js/spec-sheet.js and js/cashmemo.js, so on any page where the
+   user had not opened one — the homepage, /about/, a piece page before tapping
+   Export Spec Sheet — Ctrl+P produced a sheet of blank paper.
+
+   `printing-document` is set only by those two modals, never by the concierge
+   drawer or the overlay menu, which are not print targets. It is deliberately not
+   the existing `modal-open` class for exactly that reason.
+
+   display:none rather than visibility:hidden, because a hidden box still occupies
+   layout and paginates — that is what produces trailing blank pages after the
+   document. -------------------------------------------------------------- */
+@media print {
+  body.printing-document > *:not(.spec-modal):not(.memo-modal) {
+    display: none !important;
+  }
+  body.printing-document .spec-modal,
+  body.printing-document .memo-modal {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    background: #FFFFFF;
+  }
+  .spec-backdrop, .memo-backdrop, .no-print {
+    display: none !important;
+  }
+  .spec-dialog, .memo-dialog {
+    width: 100%;
+    max-height: none;
+    box-shadow: none;
+    padding: 0;
+    background: #FFFFFF;
+  }
+  .spec-document {
+    border: 2px solid #000000;
+  }
+  .memo-document {
+    box-shadow: none !important;
+  }
+}

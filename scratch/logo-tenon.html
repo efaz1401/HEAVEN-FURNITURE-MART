@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HFM — The Tenon Mark</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/fonts.generated.css">
+<style>
+  body{margin:0;background:var(--paper);color:var(--on-light);
+       font-family:var(--sans);font-size:var(--fs-body)}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:3rem 1.5rem 6rem}
+  h1{font-family:var(--display);font-weight:200;letter-spacing:.045em;
+     text-transform:uppercase;font-size:var(--fs-h2);margin:0 0 .4em}
+  .eyebrow{font-size:var(--fs-eyebrow);font-weight:700;text-transform:uppercase;
+     letter-spacing:.14em;display:flex;align-items:center;gap:.7rem;margin:3.5rem 0 1.25rem}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--primary);flex:none}
+  p.lead{color:var(--on-light-mute);max-width:62ch;line-height:1.5;
+     font-size:var(--fs-lead);margin:0 0 2rem}
+  .row{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--hair)}
+  .cell{flex:1 1 210px;padding:2.25rem 1.5rem;display:flex;flex-direction:column;
+     align-items:center;gap:1.5rem;border-right:1px solid var(--hair)}
+  .cell:last-child{border-right:0}
+  .cell.dark{background:var(--ink);color:var(--on-dark)}
+  .cell .cap{font-size:.6875rem;font-weight:700;letter-spacing:.16em;
+     text-transform:uppercase;color:var(--on-light-fade)}
+  .cell.dark .cap{color:var(--on-dark-mute)}
+
+  /* ---- The lockup: mark + wordmark, exactly as the nav would carry it ---- */
+  .lockup{display:flex;align-items:center;gap:.75rem}
+  .lockup .wm{font-family:var(--display);font-weight:500;font-size:.95rem;
+     letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  .lockup svg{flex:none}
+
+  .scale{display:flex;align-items:flex-end;gap:2.25rem;flex-wrap:wrap}
+  .scale figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.75rem}
+  .scale figcaption{font-size:.625rem;font-weight:700;letter-spacing:.14em;
+     text-transform:uppercase;color:var(--on-light-fade)}
+
+  .grid-note{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+     gap:0;border:1px solid var(--hair);border-bottom:0}
+  .grid-note div{padding:1.5rem;border-bottom:1px solid var(--hair);
+     border-right:1px solid var(--hair)}
+  .grid-note h4{font-family:var(--display);font-weight:600;letter-spacing:.08em;
+     text-transform:uppercase;font-size:1rem;margin:0 0 .6rem}
+  .grid-note p{margin:0;font-size:var(--fs-small);color:var(--on-light-mute);
+     line-height:1.55;max-width:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow" style="margin-top:0">Heaven Furniture Mart</p>
+  <h1>The tenon mark</h1>
+  <p class="lead">An H whose crossbar is a through-tenon: the rail passes
+  through the right stile and shows on the far side. The overhang is the whole
+  idea — it is the visible proof the joint is real. One red peg, hairline
+  strokes at the display face's own weight, square terminals, zero radius.</p>
+
+  <!-- =====================================================================
+       THE MARK — one source of truth. Every instance below is a <use> of
+       this, so the geometry cannot drift between the nav, the tile and the
+       favicon.
+
+       GEOMETRY, 64x64 box.
+       Stiles      x=10 and x=34, stroke 3, from y=12 to y=52 (cap height 40).
+       Rail        y=30, stroke 3, from x=10 to x=47.
+       Overhang    13 units past the right stile — the through-tenon.
+       Peg         3x11 VERTICAL bar at x=41, crossing the rail.
+
+       WHY THE STILES MOVED IN (x=14/37 -> x=10/34). The first draft set the
+       counter 20 units wide inside a 64 box and the H read as narrow and
+       tall beside the wordmark. Jost's cap H is close to square, and the
+       mark has to match the face it sits next to, not a generic grotesque.
+       24 units of counter against 40 of cap height is 0.6 — the same
+       width-to-height ratio as Jost's own H, measured off the wordmark.
+
+       WHY THE PEG IS VERTICAL. It was a 4x4 square inside the rail, which
+       at any size below ~48px stopped reading as a peg and became a red
+       tick on a black line — the eye merged it into the stroke because it
+       shared the stroke's axis. A drawbored peg passes through the tenon
+       PERPENDICULAR to it, so vertical is the truer detail and it gives red
+       its own axis: at 16px the mark is three horizontal-and-vertical black
+       strokes with one red cross-stroke, and the red still separates.
+
+       Stroke 3 on a 64 box = 4.7%, the stem weight of Jost 200 at display
+       size, so mark and wordmark read as one voice rather than two.
+       ===================================================================== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="hfm-tenon">
+        <!-- left stile -->
+        <rect x="10" y="12" width="3" height="40"/>
+        <!-- right stile -->
+        <rect x="34" y="12" width="3" height="40"/>
+        <!-- the rail, tenoned through the right stile and overhanging -->
+        <rect x="10" y="30" width="37" height="3"/>
+      </g>
+      <!-- The peg, kept separate because it is the only red element and
+           every call site fills it from --primary rather than currentColor. -->
+      <g id="hfm-peg">
+        <rect x="41" y="26" width="3" height="11"/>
+      </g>
+    </defs>
+  </svg>
+
+  <p class="eyebrow">Primary lockup</p>
+  <div class="row">
+    <div class="cell">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" width="26" height="26" role="img"
+             aria-label="Heaven Furniture Mart">
+          <g fill="currentColor"><use href="#hfm-tenon"/></g>
+          <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+        </svg>
+        <span class="wm">Heaven Furniture Mart</span>
+      </div>
+      <span class="cap">On paper</span>
+    </div>
+    <div class="cell dark">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" width="26" height="26" role="img"
+             aria-label="Heaven Furniture Mart">
+          <g fill="currentColor"><use href="#hfm-tenon"/></g>
+          <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+        </svg>
+        <span class="wm">Heaven Furniture Mart</span>
+      </div>
+      <span class="cap">On ink</span>
+    </div>
+    <div class="cell">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" width="26" height="26" role="img" aria-label="HFM">
+          <g fill="currentColor"><use href="#hfm-tenon"/></g>
+          <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+        </svg>
+        <span class="wm">HFM</span>
+      </div>
+      <span class="cap">Monogram &lt;600px</span>
+    </div>
+  </div>
+
+  <p class="eyebrow">Mark alone, at size</p>
+  <div class="scale">
+    <figure>
+      <svg viewBox="0 0 64 64" width="128" height="128" role="img" aria-label="HFM mark">
+        <g fill="var(--on-light)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>128</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="HFM mark">
+        <g fill="var(--on-light)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>64</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 64 64" width="32" height="32" role="img" aria-label="HFM mark">
+        <g fill="var(--on-light)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>32</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 64 64" width="16" height="16" role="img" aria-label="HFM mark">
+        <g fill="var(--on-light)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>16</figcaption>
+    </figure>
+  </div>
+
+  <p class="eyebrow">App icon &amp; favicon</p>
+  <div class="row">
+    <div class="cell">
+      <!-- Ink tile. The site's own webmanifest already declares #111219 for
+           both background_color and theme_color, so the tile matches the
+           splash screen it opens into. -->
+      <svg viewBox="0 0 64 64" width="88" height="88" role="img" aria-label="HFM icon">
+        <rect width="64" height="64" fill="var(--ink)"/>
+        <g fill="var(--paper)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="cap">Ink tile — square</span>
+    </div>
+    <div class="cell">
+      <svg viewBox="0 0 64 64" width="88" height="88" role="img" aria-label="HFM icon">
+        <rect width="64" height="64" fill="var(--paper)" stroke="var(--hair)"
+              stroke-width="2"/>
+        <g fill="var(--on-light)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="cap">Paper tile</span>
+    </div>
+    <div class="cell dark">
+      <!-- 16px reality check, at ACTUAL size. The 3-unit peg is under a pixel
+           here, so it survives as one antialiased red pixel crossing the rail.
+           That is the whole argument for the vertical peg: on the rail's own
+           axis the same pixel merged into the stroke and the mark went
+           monochrome at browser-tab size. -->
+      <svg viewBox="0 0 64 64" width="16" height="16" role="img" aria-label="HFM icon">
+        <rect width="64" height="64" fill="var(--ink)"/>
+        <g fill="var(--paper)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="cap">16px, actual size</span>
+    </div>
+  </div>
+
+  <p class="eyebrow">Why it is this and not something else</p>
+  <div class="grid-note">
+    <div>
+      <h4>It argues the site's own case</h4>
+      <p>“The joint is the detail” appears on the homepage, the craft
+      accordion and the about page. The overhanging tenon is that sentence as
+      a shape: you can see how the piece holds together, which is what the
+      copy says you are paying for.</p>
+    </div>
+    <div>
+      <h4>Red stays an accent</h4>
+      <p>tokens.css records a shipped full-bleed red overlay being reversed
+      because red backed ten things and nine were small. The peg is one 3×11
+      bar — 5% of the mark's ink, an accent on a hairline frame rather than a
+      field, consistent with that ruling.</p>
+    </div>
+    <div>
+      <h4>It obeys the hard-edge law</h4>
+      <p>Zero radius, square terminals, flat fills, no shadow and no gradient.
+      Buttons are the only soft component on the site; a mark with rounded
+      ends would read as borrowed from somewhere else.</p>
+    </div>
+    <div>
+      <h4>It matches Jost 200</h4>
+      <p>Stroke 3 in a 64 box is 4.7% — the stem weight of the display face
+      beside it. A heavier mark is what the current placeholder favicon gets
+      wrong: solid, tight and bold against a thin, wide, tracked wordmark.</p>
+    </div>
+    <div>
+      <h4>It survives 16px</h4>
+      <p>Four rectangles, all axis-aligned. No counters to fill in, no curve to
+      alias, no detail that disappears. The counter between the stiles is 24
+      units against a 3-unit stroke, so the H never closes up, and the peg
+      crosses the rail rather than sitting inside it — which is what keeps the
+      red separable when it is down to one pixel.</p>
+    </div>
+    <div>
+      <h4>It carries the AR reading too</h4>
+      <p>A rail passing through a frame and emerging on the other side is also
+      a piece entering a room. That is the site's other promise, and it comes
+      free with the joinery reading rather than competing with it.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

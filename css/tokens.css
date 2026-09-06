@@ -1,0 +1,298 @@
+/* ==========================================================================
+   Heaven Furniture Mart — Design tokens
+   Palette: "Signal" — blue-black, paper white, one red.
+   Replaces "Oxblood & Bone" (#170000 / #F54F07 / lime AR signal).
+
+   THE PAGE IS LIGHT NOW. The old skin was dark-first with .section-light as
+   the exception; this one is paper-first with .section-dark as the exception.
+   Token names stay semantically honest through the flip: --ink and its steps
+   are still genuinely dark, --on-dark is still text-for-a-dark-surface. What
+   changed is which of them the body defaults to (see base.css).
+   ========================================================================== */
+
+:root {
+  /* ---- Dark surfaces ---------------------------------------------------
+     Used by the hero, the meta strip, the corridor and the footer. Not the
+     page base any more. */
+  --ink:          #111219;   /* deepest — hero, corridor, page-dark base    */
+  --ink-2:        #1A1A1A;   /* footer, raised surfaces on dark             */
+  --ink-3:        #252525;   /* footer sub-bar, hover surfaces on dark      */
+
+  /* ---- Light surfaces --------------------------------------------------- */
+  --paper:        #FFFFFF;   /* page base                                   */
+  --paper-2:      #FDFDFD;   /* alternating band — a half-step, not a card  */
+  --ghost:        #E9E9E9;   /* giant background type AND the fluid-fill base */
+
+  /* ---- Structure on light ---------------------------------------------
+     --hair is 1.44:1 on white: correct for a decorative divider, and NOT
+     enough for anything interactive. WCAG 1.4.11 wants 3:1 on the boundary
+     of a control, so form fields and chips use --hair-strong (3.23:1). */
+  --hair:         #D7D7D7;
+  --hair-strong:  #8F8F8F;
+
+  /* ---- Signal: three steps of one red, split by contrast -----------------
+     #ED1C2E is 4.37:1 on white and 4.33:1 on --ink — it clears the 3:1 bar
+     for large text and UI components but FAILS 4.5:1 for body copy.
+     #D41929 is 5.29:1 on white, and white on it is also 5.29:1.
+     So: bright red for fills, large display, arrows, dots and rules;
+     deep red for small red text and for any fill carrying white text.
+
+     --primary-lite exists because the deep/bright split was calibrated for
+     red on PAPER, and going darker is the wrong move on ink: small red text
+     on a dark band needs a LIGHTER red, not a deeper one. Measured on --ink,
+     #ED1C2E is 4.28:1 (fails) and #D41929 is worse; #EC4B53 is 5.04:1 and
+     passes. It is in the reference's own palette, so this is a third step of
+     the same red rather than a new hue. Use it for small red text on dark —
+     search-result highlights, flags, eyebrows inside .section-dark. */
+  --primary:      #ED1C2E;
+  --primary-deep: #D41929;
+  --primary-lite: #EC4B53;
+  --primary-ink:  #FFFFFF;   /* text on a --primary-deep fill: 5.29:1       */
+
+  /* ---- AR ---------------------------------------------------------------
+     The AR colour law is RETIRED. The old skin reserved lime #C6F24E for AR
+     affordances and nothing else, which made the brightest pixel on the site
+     always the invitation to place furniture in your room. AR now shares the
+     signal red, so it earns attention through size, weight and the accent
+     sweep instead of hue. Aliases kept so the remaining call sites across
+     base/pages/experience resolve without edits.
+
+       --ar-signal    the fill behind white text: .ar-flag, .ar-inline,
+                      .coach-num, .quote-fab, .skip, and every
+                      :focus-visible outline. -deep, because those labels are
+                      11-17px and under WCAG's 18.66px-bold large-text cutoff.
+       --ar-signal-dp a darker hover fill, still used by the circular .arc-btn
+                      and .film-play controls. DARKER, not brighter —
+                      brightening to #ED1C2E would drop their white glyphs to
+                      4.37:1 and fail.
+
+     --ar-bracket is GONE. It coloured the four viewfinder brackets on .btn-ar,
+     which were retired with the Tenon when the button became the AntiMetal
+     pill: the brackets lived on the exact pseudo-elements the accent chip and
+     dot field now occupy. Nothing references it. */
+  --ar-signal:    var(--primary-deep);
+  --ar-signal-dp: #B01521;                   /* white on it: 7.06:1         */
+
+  /* ---- Text roles ------------------------------------------------------- */
+  --on-dark:       #FFFFFF;
+  /* PURE GREY, NOT A TINT. This was #A4888B — r164 g136 b139, red leading green
+     by 28 — and it was the single largest off-palette colour on the site: 334
+     elements across all 13 page types, every footer link, the whole foot rail, the
+     hero and corridor leads and the numbers strip.
+
+     It read as PINK rather than as grey for a specific reason. --ink #111219 is
+     itself slightly blue (b25 > g18 > r17), and #A4888B sits close to that blue's
+     complement, so instead of receding into the dark bands it sat opposite them
+     and the warmth was amplified. The light side never had this problem:
+     --on-light-mute is a pure neutral, so the two halves of the palette disagreed.
+
+     The site is red, black and white. Grey is black at reduced weight, so a
+     neutral grey is inside that palette and any tint is a fourth colour.
+
+     #9A9A9A rather than the exact mirror of --on-light-mute (which would be
+     #8C8C8C, 5.55:1 on --ink against the light side's 5.57:1 on paper): the dark
+     side has THREE grounds where the light side has one, and #8C8C8C lands at
+     4.56:1 on --ink-3 — six hundredths above the AA floor. #9A9A9A keeps 5.45:1
+     there. Every ground also improves on the old rose, so this is not a trade. */
+  --on-dark-mute:  #9A9A9A;                  /* 6.64:1 on --ink, 6.19:1 on --ink-2,
+                                                5.45:1 on --ink-3 (was 4.72:1) */
+  --on-light:      #191919;
+  --on-light-mute: #686868;                  /* 5.57:1 on paper             */
+  --on-light-fade: #535353;                  /* 7.69:1 — captions, meta     */
+
+  /* ---- Legacy alias -----------------------------------------------------
+     Phase 1 kept five aliases so 65+ existing declarations across four
+     stylesheets would keep resolving without a search-replace (which is how a
+     re-skin turns into a rewrite). Phase 4 migrated every one of those call
+     sites to the honest role names, so four of the five — --bone, --bone-2,
+     --clay and --brass — are now referenced by NOTHING and have been deleted.
+     Verified by sweeping `var(--X)` across css/, js/ and all 33 HTML files
+     including inline styles.
+
+     They are removed rather than left behind with a note, for the same reason
+     initMenu() was removed from js/shell.js: a plausible, intact, never-used
+     definition is exactly what a future editor finds, trusts and builds on.
+     The class names `.btn--bone` and `.eyebrow--brass` are unrelated and still
+     live — they are BEM modifiers, not tokens.
+
+     --ovmenu-bg survives because css/nav.css still reads it, and the name
+     carries real meaning there: the overlay's ground is a deliberate choice, and
+     it changed. */
+
+  /* ---- The overlay menu's ground ---------------------------------------
+     INK, NOT RED. The approved plan specified a red field (#B3161F → #ED1C2E)
+     and it shipped that way; this is a deliberate reversal, signed off after the
+     screen was seen in place.
+
+     The argument is peer consistency rather than taste. The site has THREE
+     full-screen overlay layers, opened from buttons that sit next to each other
+     in the same bar:
+
+       search overlay      rgba(17, 18, 25, .96)
+       AR coach modal      rgba(17, 18, 25, .97)
+       nav menu overlay    #D41929               <- the odd one
+
+     And counting every surface declaration, --primary-deep backed ten things but
+     nine were SMALL — button chips, the circular carousel and play controls,
+     slider thumbs, the radio dot, ::selection, .skip, the stage-exit hover. This
+     overlay was the only full-bleed red on the site, against six large --ink
+     surfaces (hero, meta strip, corridor, footer, loader). tokens.css
+     states the rule it broke: red is reserved for actions and accents.
+
+     .97 rather than a flat --ink so it matches the coach modal exactly: at that
+     alpha the page beneath is a suggestion rather than a distraction, and the
+     three overlays now read as one family.
+
+     Red did not leave the overlay, it went back to being the accent — the
+     hovered and current items take --primary-lite, which is also what fixed a
+     real defect: the old hover inverted to --ink at 3.53:1 on red, and at 148px
+     that read as a hole punched in the screen rather than a highlight. */
+  --ovmenu-bg: rgba(17, 18, 25, .97);
+
+  /* ---- Type ------------------------------------------------------------
+     Two variable families replace three static ones (Fraunces + Anton +
+     Inter Tight). Jost is a geometric sans that holds up at weight 200 in
+     wide caps — the reference's display voice — and collapses to Century
+     Gothic / Futura, which are metrically close, rather than to Arial.
+
+     This INVERTS the old type law documented at base.css:27. That system
+     said "uppercase reserved for eyebrows only" and tracked every heading
+     to -.02em at weight 700-800. The new one is thin, wide and capitalised.
+     Deliberate reversal, not drift.
+
+     The "* fallback" entries are the metric-matched faces defined at the foot
+     of fonts.generated.css. They resolve to whatever Arial/Helvetica/Roboto the
+     device has, scaled to the real font's proportions, and they exist purely so
+     the swap at ~870ms does not re-wrap a heading and drop everything below it
+     by a line. They must sit immediately after the real family and before
+     Century Gothic, which is a full 9% wider than Jost. */
+  --display:   "Jost", "Jost fallback", "Century Gothic", Futura, system-ui, sans-serif;
+  --sans:      "Inter Tight", "Inter Tight fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --grotesque: var(--display);   /* the oversized cine/corridor voice is now
+                                    the same family, differentiated by weight */
+
+  /* nav.css asks for these two and nothing has ever defined them, so the
+     brand mark has been silently falling back to its own second choice. */
+  --font-display: var(--display);
+  --font-body:    var(--sans);
+
+  /* Display sizes step up ~15%: caps occupy less optical height than
+     lowercase at the same px, so matching the old presence needs more.
+     Body sizes are NOT touched — 17px was already correct. */
+  --fs-hero:  clamp(2.9rem, 7.8vw, 6.4rem);
+  --fs-h1:    clamp(2.5rem, 6vw, 4.6rem);
+  --fs-h2:    clamp(2.15rem, 4.5vw, 3.7rem);
+  --fs-h3:    clamp(1.4rem, 2.3vw, 1.95rem);
+  --fs-lead:  clamp(1.08rem, 1.5vw, 1.3rem);
+  --fs-body:  1.0625rem;                      /* 17px                       */
+  --fs-small: 0.9375rem;                      /* 15px floor                 */
+  --fs-eyebrow: 0.8125rem;
+  --fs-ghost: clamp(7rem, 26vw, 22rem);       /* the background numeral/word */
+
+  /* ---- Space & rhythm -------------------------------------------------- */
+  --gap:      clamp(1rem, 2.5vw, 1.75rem);
+  --section:  clamp(3.5rem, 9vw, 8rem);
+  --maxw:     1240px;
+  --maxw-text: 68ch;
+
+  /* ---- Structure ------------------------------------------------------- */
+  --edge:     1px solid rgba(255, 255, 255, .14);   /* hairline on dark     */
+  --edge-dk:  1px solid var(--hair);                /* hairline on light    */
+  --ease:     cubic-bezier(.22, .61, .36, 1);
+  --ease-out: cubic-bezier(.22, .61, .36, 1);    /* alias — exit transitions */
+  --ease-io:  cubic-bezier(.4, 0, .2, 1);        /* symmetric — fluid fill   */
+  --ease-panel: cubic-bezier(.65, 0, .35, 1);    /* the accent panel sweep   */
+  --dur:      .32s;
+  --dur-lg:   .52s;                              /* loader bar, cine reveal  */
+  --dur-xl:   .72s;                              /* overlay lift, 3D swap    */
+
+  /* ---- Buttons ---------------------------------------------------------
+     The button language is now the "AntiMetal" pill for primary actions and a
+     ringed outline for secondary ones, replacing the old "Tenon" face-on-
+     offset-block. --lift is gone with it; the new hover is a translate, not a
+     seat. Radius is deliberate and NOT the site's usual 0: the hard-edge law
+     still governs cards, chips, hairlines and inputs, and buttons are the one
+     component allowed to be soft, so they read as the thing you press.
+
+     The accent is two steps of the signal red, split by contrast. The panel
+     expands under a WHITE 15px label on hover, and white on --primary is
+     4.37:1 — a fail. On --primary-deep it is 5.29:1. So the bright red is the
+     collapsed chip (decorative, no text over it) and the deep red is whatever
+     ends up behind the label. The reference component's lime #d6f54a is
+     deliberately not used: it is the retired AR signal in all but name. */
+  --btn-r:        12px;   /* primary pill  (reference: rounded-xl)          */
+  --btn-r-sm:     8px;    /* outline + the pill's inner chip (rounded-lg)   */
+  --btn-h:        52px;   /* >= the 44px touch target, and taller than the
+                             reference's h-11 because these labels wrap on
+                             narrow screens where .btn-ar--block is 100% wide */
+  --btn-chip-w:   36px;   /* collapsed accent chip; .btn-ar widens it to 44  */
+  --btn-accent:      var(--primary);        /* chip, no text over it        */
+  --btn-accent-deep: var(--primary-deep);   /* expanded panel, carries text */
+  --btn-lift:     4px;    /* hover translateY — composes with the magnetic
+                             offset from js/magnetic.js, never replaces it   */
+
+  /* ---- Liquid glass ----------------------------------------------------
+     The floating nav pill, in two tints. Which one is worn is decided per
+     frame by js/shell.js, from the section under the pill's own centre.
+
+     WHY TWO. Glass only reads as a pane when it is lighter or darker than what
+     is behind it. A single light tint was tried across the whole page and fails
+     over the dark bands: 55% white over #111219 composites to a dead
+     rgb(148,148,152), and the pill stops looking like glass and becomes a flat
+     grey slab on top of the artwork. So the tint inverts over dark ground.
+
+     The old single dark glass was `color-mix(in srgb, #111219 82%, transparent)`.
+     That 82% was itself a measured fix: at 55% ink over WHITE content the glass
+     composited to ≈#7C7D83, where white .72rem links land at 4.13:1 and fail.
+     With the tint now following the ground, the dark variant only ever sits over
+     dark bands, so it can go back to a genuinely transparent 62% and still keep
+     white type far above the bar (≈13:1 over #111219).
+
+     saturate() is what separates liquid glass from frosted grey: it pulls colour
+     through from behind rather than washing it out. The edges and shadows are
+     structural — at these alphas, over a ground of similar lightness, the pill
+     would have no boundary of its own and simply disappear. */
+  --glass-bg:            rgba(255, 255, 255, .76);
+  --glass-bg-solid:      rgba(255, 255, 255, .92);  /* no-backdrop-filter        */
+  --glass-edge:          rgba(255, 255, 255, .72);
+  --glass-shadow:        0 8px 32px rgba(17, 18, 25, .12);
+  --glass-bg-dark:       rgba(17, 18, 25, .32);
+  --glass-bg-dark-solid: rgba(17, 18, 25, .92);
+  --glass-edge-dark:     rgba(255, 255, 255, .16);
+  --glass-shadow-dark:   0 8px 32px rgba(0, 0, 0, .38);
+  --glass-blur:          blur(24px) saturate(180%);
+
+  /* The AR carousel's gutter. ONE token because two rules depend on it being
+     the same number: .arc-track's padding-inline and .arc-slide's
+     scroll-margin-inline-start. If they diverge the track rests at a non-zero
+     scroll offset, clipping the first slide and leaving the prev arrow live.
+     20px rather than the page margin: the strip is meant to run off both edges,
+     which is what reads as "this scrolls". */
+  --arc-gutter: 20px;
+
+  /* ---- Layers ---------------------------------------------------------- */
+  --z-fab:    40;   /* the floating quote pill: under the header, so the         */
+                    /* overlay menu and the AR stage both cover it              */
+  --z-head:   50;
+  --z-menu:   60;
+  --z-modal:  70;
+}
+ 
+/* ---- Bengali Typography (activated only when lang="bn") ------------------ */
+html[lang="bn"] {
+  --display:      "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --sans:         "Hind Siliguri", "Noto Sans Bengali", system-ui, -apple-system, sans-serif;
+  --grotesque:    var(--display);
+  --font-display: var(--display);
+  --font-body:    var(--sans);
+}
+
+/* Motion is a wayfinding tool, not decoration — kill it all on request. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

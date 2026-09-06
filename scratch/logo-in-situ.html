@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tenon mark — in situ</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/fonts.generated.css">
+<style>
+  /* This file is a HARNESS, not a design. It reproduces only the bits of the
+     real .pill-head that affect how the mark reads — the glass tint, the
+     wordmark's type spec, the 16px gap — so the mark can be judged at its
+     true rendered size against both grounds. If it looks right here it will
+     look right in nav.css; if it needs nudging, the numbers to change are the
+     mark's, not this file's. */
+  body{margin:0;background:var(--paper);font-family:var(--sans);color:var(--on-light)}
+  .band{padding:2.5rem 1.5rem}
+  .band.ink{background:var(--ink);color:var(--on-dark)}
+  .label{font-size:.6875rem;font-weight:700;letter-spacing:.16em;
+     text-transform:uppercase;color:var(--on-light-fade);margin:0 0 1rem}
+  .band.ink .label{color:var(--on-dark-mute)}
+
+  /* The floating pill, copied in spirit from css/nav.css */
+  .pill{max-width:1240px;margin:0 auto;height:64px;display:flex;
+     align-items:center;justify-content:space-between;
+     padding:0 18px;border-radius:14px;
+     background:var(--glass-bg);border:1px solid var(--glass-edge);
+     box-shadow:var(--glass-shadow);backdrop-filter:var(--glass-blur)}
+  .band.ink .pill{background:var(--glass-bg-dark);border-color:var(--glass-edge-dark);
+     box-shadow:var(--glass-shadow-dark)}
+
+  .brand{display:flex;align-items:center;gap:.7rem;text-decoration:none;
+     color:currentColor}
+  .brand .wm{font-family:var(--font-display);font-weight:500;font-size:.95rem;
+     letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  .brand svg{flex:none}
+
+  .links{display:flex;align-items:center;gap:.35rem}
+  .links a{font-family:var(--font-body);font-size:.875rem;font-weight:600;
+     letter-spacing:.1em;text-transform:uppercase;color:currentColor;
+     text-decoration:none;padding:9px 11px;opacity:.9}
+
+  /* Favicon reality check: the browser tab. 16 and 32 device px, no scaling. */
+  .tabs{display:flex;gap:2.5rem;align-items:flex-end;margin-top:.5rem}
+  .tabs figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.6rem}
+  .tabs figcaption{font-size:.625rem;font-weight:700;letter-spacing:.14em;
+     text-transform:uppercase;color:var(--on-light-fade)}
+  /* A fake chrome tab so the icon is judged next to real 12px tab type,
+     which is the only context a favicon is ever seen in. */
+  .tab{display:flex;align-items:center;gap:7px;background:#F1F1F1;
+     border:1px solid var(--hair);border-bottom:0;
+     border-radius:8px 8px 0 0;padding:7px 12px;
+     font-size:12px;color:#3C3C3C;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="hfm-tenon">
+      <rect x="10" y="12" width="3" height="40"/>
+      <rect x="34" y="12" width="3" height="40"/>
+      <rect x="10" y="30" width="37" height="3"/>
+    </g>
+    <g id="hfm-peg"><rect x="41" y="26" width="3" height="11"/></g>
+  </defs>
+</svg>
+
+<div class="band">
+  <p class="label">Over paper — glass light tint</p>
+  <div class="pill">
+    <a class="brand" href="#" aria-label="Heaven Furniture Mart">
+      <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
+        <g fill="currentColor"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="wm">Heaven Furniture Mart</span>
+    </a>
+    <nav class="links">
+      <a href="#">Collections</a><a href="#">Bespoke</a><a href="#">Materials</a>
+    </nav>
+  </div>
+</div>
+
+<div class="band ink">
+  <p class="label">Over ink — glass dark tint, the hero case</p>
+  <div class="pill">
+    <a class="brand" href="#" aria-label="Heaven Furniture Mart">
+      <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
+        <g fill="currentColor"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary-lite)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="wm">Heaven Furniture Mart</span>
+    </a>
+    <nav class="links">
+      <a href="#">Collections</a><a href="#">Bespoke</a><a href="#">Materials</a>
+    </nav>
+  </div>
+</div>
+
+<div class="band ink">
+  <p class="label">Monogram, under 600px</p>
+  <div class="pill" style="max-width:360px">
+    <a class="brand" href="#" aria-label="Heaven Furniture Mart">
+      <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
+        <g fill="currentColor"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary-lite)"><use href="#hfm-peg"/></g>
+      </svg>
+      <span class="wm">HFM</span>
+    </a>
+    <nav class="links"><a href="#">Menu</a></nav>
+  </div>
+</div>
+
+<div class="band">
+  <p class="label">Browser tab — actual pixel size</p>
+  <div class="tabs">
+    <figure>
+      <div class="tab">
+        <svg viewBox="0 0 64 64" width="16" height="16" aria-hidden="true">
+          <rect width="64" height="64" fill="var(--ink)"/>
+          <g fill="var(--paper)"><use href="#hfm-tenon"/></g>
+          <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+        </svg>
+        Heaven Furniture Mart — Bespoke…
+      </div>
+      <figcaption>16px in a tab</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+        <rect width="64" height="64" fill="var(--ink)"/>
+        <g fill="var(--paper)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>32 — retina tab</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 64 64" width="180" height="180" aria-hidden="true">
+        <rect width="64" height="64" fill="var(--ink)"/>
+        <g fill="var(--paper)"><use href="#hfm-tenon"/></g>
+        <g fill="var(--primary)"><use href="#hfm-peg"/></g>
+      </svg>
+      <figcaption>App icon — 180</figcaption>
+    </figure>
+  </div>
+</div>
+
+</body>
+</html>

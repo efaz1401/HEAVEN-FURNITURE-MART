@@ -1,0 +1,735 @@
+/* ==========================================================================
+   Heaven Furniture Mart — "experience" layer
+   Cohesive motion + presentation system added on top of the base design
+   language. Everything here shares the same easing tokens and the Oxblood &
+   Bone palette so the loader, cinematic section, fluid text, 3D stage and AR
+   controls read as one design, not bolted-on patches.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. FIRST-VISIT LOADING SCREEN
+   Full-screen, brand-consistent, shown only until the initial heavy assets
+   (fonts + the correct hero video's first frames) are ready. Gated by
+   sessionStorage so intra-session navigation never shows it again.
+   Fails OPEN: js/loader.js force-dismisses after a hard timeout, and if JS
+   never runs the overlay is display:none by default (class added by JS).
+   ========================================================================== */
+/* THE LOADER STAYS DARK, DELIBERATELY. Everything else in Phase 4 moved to
+   paper, so this rule needs its reason recorded or a later editor will "finish
+   the job" and regress it.
+
+   It only ever appears on the homepage, whose first section is the #111219
+   hero. A paper loader would flash white and then hand over to a dark band —
+   two hard luminance jumps in the first second on the slowest connections,
+   which is exactly the audience this overlay exists for. Ink-on-ink is one
+   continuous surface: the overlay lifts and the hero is already there.
+
+   What DID change is the token names. Every colour here was written in the
+   retired oxblood vocabulary — --bone, --clay, and a warm rgba(245,239,231)
+   track. Those are legacy aliases now (--bone → --paper, --clay →
+   --on-dark-mute), so the file rendered correctly while describing a palette
+   that no longer exists. Renamed to the honest on-dark roles, and the track's
+   warm cream replaced with plain white at the same alpha so nothing in the
+   loader carries an oxblood value any more.
+
+   The wordmark also picks up the display law from base.css: weight 200 with
+   positive tracking, not 800 at -.02em. It was the last piece of retired
+   typography still shipping. */
+/* ==========================================================================
+   1. FIRST-VISIT BESPOKE LOADING SCREEN (homepage only)
+   Engineered for Heaven Furniture Mart. An architectural opening sequence
+   combining a seamless optical letter wave, champagne-platinum light sweep,
+   and precision crimson telemetry. Gated strictly to first visits via
+   sessionStorage, with zero glance-through to the page below.
+   ========================================================================== */
+html:not(.is-first-visit) #loader {
+  display: none !important;
+}
+
+html.is-first-visit #loader {
+  display: grid;
+  place-items: center;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--ink);
+  user-select: none;
+}
+
+/* Guard against glance-through: hide main content and chrome completely on first visit
+   until loader dismissal triggers intro-run */
+html.is-first-visit body:not(.intro-run) main,
+html.is-first-visit body:not(.intro-run) .pill-head,
+html.is-first-visit body:not(.intro-run) .quote-fab {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.loading {
+  overflow: hidden;
+}
+
+/* ---- The same overlay, scoped to the 3D stage -------------------------------
+   js/heaven-loader.js builds this when the user taps into the 3D viewer. It
+   reuses every .loader-* element rule below unchanged — the wordmark sheen, the
+   hairline bar, the telemetry row — so there is one animation on the site rather
+   than two that drift apart. Only the container and the wordmark scale differ,
+   because this one fills a card rather than the viewport.
+
+   No z-index war with <model-viewer>: model-viewer paints its own poster inside
+   the same .stage, so the overlay sits above it at 5 and both are inside the
+   stage's own stacking context. -------------------------------------------- */
+.stage-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  user-select: none;
+  opacity: 1;
+  transition: opacity var(--dur-xl) var(--ease-out),
+              visibility 0s linear var(--dur-xl);
+}
+
+.stage-loader .loader-inner {
+  gap: 1.1rem;
+  padding: 1.25rem;
+}
+
+/* Smaller than the full-screen wordmark: the stage is ~400-600px wide, and the
+   6.5vw clamp used at full screen would run out of the card on a phone. */
+.stage-loader .loader-brand {
+  font-size: clamp(1.5rem, 7cqw, 2.4rem);
+  gap: 0.2em;
+}
+
+/* On paper white stage: crisp, luxury deep-ink sheen for HEAVEN wordmark */
+.stage-loader .sheen-text {
+  background: linear-gradient(
+    115deg,
+    rgba(17, 18, 25, 0.88) 0%,
+    rgba(95, 95, 100, 0.95) 42%,
+    #111219 50%,
+    rgba(95, 95, 100, 0.95) 58%,
+    rgba(17, 18, 25, 0.88) 100%
+  );
+  background-size: 240% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stage-loader .loader-sub {
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  margin-top: -0.15rem;
+  max-width: 22ch;
+  color: var(--on-light-mute);
+}
+
+/* The bar tracks the card, not the viewport, so it cannot overhang a narrow stage. */
+.stage-loader .loader-bar,
+.stage-loader .loader-meta {
+  width: min(78%, 240px);
+}
+
+.stage-loader .loader-bar {
+  background: var(--hair);
+}
+
+.stage-loader .loader-bar .loader-progress {
+  background: linear-gradient(90deg, var(--primary), var(--primary-deep));
+  box-shadow: 0 0 8px rgba(212, 25, 41, 0.35);
+}
+
+.stage-loader .loader-meta {
+  color: var(--on-light-mute);
+}
+
+.stage-loader .loader-pct {
+  color: var(--on-light);
+}
+
+.stage-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* cqw above needs a container to measure. .stage already has position:relative;
+   this makes it a size container too, which changes no layout. */
+.stage {
+  container-type: inline-size;
+}
+
+@supports not (width: 1cqw) {
+  .stage-loader .loader-brand { font-size: clamp(1.5rem, 5vw, 2.4rem); }
+}
+
+.loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 2rem;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+/* Brand Optical Wave */
+.loader-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(0.18em, 1.2vw, 0.35em);
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 6.5vw, 4.2rem);
+  font-weight: 200;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.loader-brand .char {
+  display: inline-block;
+  animation: hfm-char-wave 3.2s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes hfm-char-wave {
+  0% { transform: scaleY(0.72) translateY(2px); opacity: 0.55; }
+  50% { transform: scaleY(1.04) translateY(-3px); opacity: 1.00; }
+  100% { transform: scaleY(0.72) translateY(2px); opacity: 0.55; }
+}
+
+.loader-brand .char:nth-child(1) { animation-delay: 0.0s; }
+.loader-brand .char:nth-child(2) { animation-delay: -0.32s; }
+.loader-brand .char:nth-child(3) { animation-delay: -0.64s; }
+.loader-brand .char:nth-child(4) { animation-delay: -0.96s; }
+.loader-brand .char:nth-child(5) { animation-delay: -1.28s; }
+.loader-brand .char:nth-child(6) { animation-delay: -1.60s; }
+
+/* Metallic Champagne-Platinum Light Sheen */
+.sheen-text {
+  display: inline-block;
+  background: linear-gradient(
+    115deg,
+    rgba(190, 185, 175, 0.42) 0%,
+    rgba(245, 240, 230, 0.90) 38%,
+    #ffffff 50%,
+    rgba(245, 240, 230, 0.90) 62%,
+    rgba(190, 185, 175, 0.42) 100%
+  );
+  background-size: 240% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: hfm-luxury-sheen 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes hfm-luxury-sheen {
+  0% { background-position: 160% 0; }
+  100% { background-position: -160% 0; }
+}
+
+/* Subtitle */
+.loader-sub {
+  font-family: var(--sans);
+  font-size: clamp(0.625rem, 1.6vw, 0.725rem);
+  font-weight: 500;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  margin-top: -0.35rem;
+}
+
+/* Telemetry Line & Progress */
+.loader-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.loader-bar {
+  width: min(68vw, 300px);
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.loader-bar .loader-progress {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-lite));
+  box-shadow: 0 0 12px rgba(237, 28, 46, 0.7);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.loader-meta {
+  width: min(68vw, 300px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.loader-pct {
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+/* Exit Transition: Overlay lifts and fades */
+#loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-16px);
+  pointer-events: none;
+  transition: opacity var(--dur-xl) var(--ease-out),
+              transform var(--dur-xl) var(--ease-out),
+              visibility 0s linear var(--dur-xl);
+}
+
+/* Content underneath eases up into place once the loader clears */
+html.is-first-visit body.intro-run main,
+html.is-first-visit body.intro-run .pill-head,
+html.is-first-visit body.intro-run .quote-fab {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  transition: opacity var(--dur-xl) var(--ease-out),
+              transform var(--dur-xl) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-brand .char,
+  .sheen-text {
+    animation: none !important;
+  }
+  .loader-bar .loader-progress,
+  #loader.is-done,
+  html.is-first-visit body.intro-run main,
+  html.is-first-visit body.intro-run .pill-head,
+  html.is-first-visit body.intro-run .quote-fab {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   2. CINEMATIC INDEX SECTION  ("why-ar")
+   Oversized display lines, hairline dividers, a slow left→right fluid fill,
+   and per-line reveal of hidden detail copy on hover (desktop) / tap (mobile).
+
+   THIS SECTION IS NOW ON PAPER, and that inversion is the single highest-value
+   change in the whole re-skin: run from #E9E9E9 to #191919 on white, the fill
+   IS the reference's ghost-typography language, arrived at with the motion
+   system that was already here. js/cine.js is untouched — scroll-driven fill,
+   the IntersectionObserver headline trigger, hover/tap rows and the accordion
+   all behave exactly as before. Only colours and borders moved.
+   ========================================================================== */
+.cine {
+  background: var(--paper); color: var(--on-light);
+  padding-block: clamp(3.5rem, 9vw, 7rem);
+  overflow: hidden;
+}
+/* NOT --clay (#A4888B): that is the muted text colour for DARK surfaces and
+   would land at 3.31:1 here, under the 4.5:1 a 13px/700 eyebrow owes. */
+.cine .eyebrow { color: var(--on-light); }
+
+.cine-list {
+  list-style: none; margin: 2rem 0 0; padding: 0;
+  border-top: var(--edge-dk);
+}
+.cine-row {
+  position: relative;
+  border-bottom: var(--edge-dk);
+}
+.cine-row > button {
+  all: unset; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  width: 100%; cursor: pointer;
+  padding-block: clamp(.4rem, 1.6vw, 1rem);
+}
+.cine-row:focus-within { outline: none; }
+.cine-row > button:focus-visible { outline: 3px solid var(--ar-signal); outline-offset: -3px; }
+
+/* The oversized word. Two stacked layers give the fluid fill:
+   - base layer: the ghost grey the whole re-skin uses for "not yet there"
+   - fill layer: ink, clipped by a moving inset driven by scroll position */
+.cine-word {
+  position: relative;
+  font-family: var(--grotesque);
+  /* Was 400 with a note that "Anton is single-weight, already heavy". Anton is
+     retired; Jost is variable, so the display voice can be what the reference
+     actually is — thin and wide. 300 rather than 200 because at #E9E9E9 the
+     unfilled base has to still be a legible ghost of a word. */
+  font-weight: 300;
+  font-size: clamp(2.6rem, 12.5vw, 11rem);
+  line-height: .92; letter-spacing: .01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cine-word .base { color: var(--ghost); }
+.cine-word .fill {
+  position: absolute; inset: 0;
+  color: var(--on-light);
+  clip-path: inset(0 var(--fill-inset, 100%) 0 0);        /* dynamically driven by scroll in js/cine.js */
+  will-change: clip-path;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-word .fill { clip-path: inset(0 0 0 0) !important; }
+}
+
+/* Marker dot on the right — the reference's accent dot, in the signal red. */
+.cine-dot {
+  flex: none; width: clamp(10px, 1.4vw, 16px); height: clamp(10px, 1.4vw, 16px);
+  border-radius: 50%; background: var(--primary);
+  opacity: .6; transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.cine-row[data-open="true"] .cine-dot { opacity: 1; transform: scale(1.25); }
+
+/* Hidden detail copy: revealed by clip + fade + slight rise. Never a hard
+   on/off. Height animates so surrounding rows move smoothly. */
+.cine-detail {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-lg) var(--ease-out);
+}
+.cine-detail > div { overflow: hidden; }
+.cine-detail p {
+  margin: 0; max-width: 52ch;
+  padding: 0 0 clamp(1rem, 2.5vw, 1.6rem);
+  color: var(--on-light-mute); font-size: var(--fs-lead); line-height: 1.5;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity var(--dur-lg) var(--ease-out), transform var(--dur-lg) var(--ease-out);
+  transition-delay: .06s;
+}
+.cine-row[data-open="true"] .cine-detail { grid-template-rows: 1fr; }
+.cine-row[data-open="true"] .cine-detail p { opacity: 1; transform: none; }
+
+/* Desktop: hover drives it, so the open row's ghost also darkens a step —
+   a hint that the word is live, without pre-empting the scroll fill. */
+@media (hover: hover) and (min-width: 1025px) {
+  .cine-row .cine-word .base { transition: color var(--dur-lg) var(--ease-out); }
+  .cine-row[data-open="true"] .cine-word .base { color: var(--hair); }
+}
+
+/* ==========================================================================
+   3. STANDALONE FLUID-FILL HEADLINE  (.fluid-head)
+   The section's own title uses the same liquid fill, driven by scroll.
+   Light-first now, matching the page: the dark pairing is kept as an opt-in
+   for any .section-dark that wants it later.
+   ========================================================================== */
+.fluid-head {
+  position: relative; display: inline-block;
+  font-family: var(--display);
+  /* Was 800/-.025em. That was the old type law; the new display voice is thin
+     and wide, and this rule sits after base.css so it would otherwise be the
+     one headline on the site still set heavy and tight. */
+  font-weight: 200;
+  font-size: var(--fs-h2); line-height: 1.02; letter-spacing: .045em;
+}
+.fluid-head .base { color: var(--ghost); }
+.fluid-head .fill {
+  position: absolute; inset: 0; color: var(--on-light);
+  clip-path: inset(0 var(--fill-inset, 100%) 0 0);
+  will-change: clip-path;
+}
+.section-dark .fluid-head .base { color: var(--ink-3); }
+.section-dark .fluid-head .fill { color: var(--on-dark); }
+@media (prefers-reduced-motion: reduce) {
+  .fluid-head .fill { clip-path: inset(0 0 0 0) !important; }
+}
+
+/* ==========================================================================
+   4. 3D STAGE — real swap, not an overlay
+   The poster image and the model-viewer are separate layers. Activating 3D
+   fades/scales the poster OUT (and sets it inert) before the model fades IN;
+   Exit 3D reverses it. No stacking, no flashing.
+   ========================================================================== */
+.stage { position: relative; }
+.stage-poster,
+.stage model-viewer {
+  transition: opacity var(--dur-xl) var(--ease-out),
+              transform var(--dur-xl) var(--ease-out);
+}
+/* Poster resting state */
+.stage-poster { opacity: 1; transform: scale(1); }
+/* When 3D is live: poster is faded, scaled back, and made inert. */
+.stage[data-mode="3d"] .stage-poster {
+  opacity: 0; transform: scale(1.03);
+  pointer-events: none; visibility: hidden;
+  transition: opacity var(--dur-lg) var(--ease-out),
+              transform var(--dur-lg) var(--ease-out),
+              visibility 0s linear var(--dur-lg);
+}
+/* model-viewer enters from a slightly scaled-down, transparent state. */
+.stage model-viewer {
+  display: block;           /* custom elements default to inline in some browsers */
+  position: absolute;       /* layer alongside the poster — fills the stage */
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0; transform: scale(1.02);
+}
+.stage[data-mode="3d"] model-viewer.is-in {
+  opacity: 1; transform: scale(1);
+}
+
+/* Exit-3D control — quiet, structural, never uses the AR signal colour.
+   It floats ON the stage, over a product image of unknown lightness, so it
+   carries its own ink chip rather than borrowing the page's ground. Retinted
+   from the oxblood rgba(23,16,15,.82) to --ink's value at the same alpha;
+   white-on-that is comfortably past 4.5:1 whatever the model is doing behind
+   it. The border is a white hairline (--edge) precisely because the chip is
+   dark — that one is correct here and wrong on paper. */
+.stage-exit {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; padding: 9px 15px;
+  background: rgba(17, 18, 25, .82); color: var(--on-dark);
+  border: var(--edge); border-radius: 0; cursor: pointer;
+  font-family: var(--sans); font-size: var(--fs-small); font-weight: 700;
+  opacity: 0; transform: translateY(-6px); pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out),
+              background var(--dur) var(--ease);
+}
+@supports (backdrop-filter: blur(6px)) { .stage-exit { backdrop-filter: blur(6px); } }
+.stage[data-mode="3d"] .stage-exit { opacity: 1; transform: none; pointer-events: auto; }
+/* Hover DARKENS to the deep red, not the bright one: the label is 15px/700,
+   under WCAG's large-text cutoff, so white on it owes 4.5:1 — #ED1C2E gives
+   4.37:1 and fails, #D41929 gives 5.29:1. */
+.stage-exit:hover { background: var(--primary-deep); }
+.stage-exit svg { width: 16px; height: 16px; }
+
+/* ==========================================================================
+   5. AR SIZE / SCALE CONTROLS — REMOVED
+   The AR Size slider (a site-side 50–200% pre-scale for AR) was removed from
+   the piece pages: model-viewer runs ar-scale="auto", so Scene Viewer and
+   WebXR already offer pinch-to-resize plus a reset-to-100% button inside the
+   AR session — the slider was a second, worse control for the same job, and
+   a range slider is the least senior-friendly input on the page. The whole
+   block went together: markup in the 18 templates (scripts/remove-scale-ctl.py),
+   wiring in js/piece.js, and these rules.
+   js/piece.js still sets stage-wrap[data-model="ready"] on model load —
+   no CSS consumes it now, but it marks the stage state for any future
+   consumer and for debugging, so it stays.
+   ========================================================================== */
+
+/* ==========================================================================
+   6. CONSISTENT PRODUCT GROUND
+   Every product surface — grid cells, the piece-page stage, the room board,
+   the media splits — shares ONE ground, so eighteen separately-shot pieces
+   read as a single catalogue rather than eighteen unrelated photographs.
+
+   RE-SKINNED FROM OXBLOOD TO PAPER. The old value was a dark vertical gradient
+   (--ink-3 → --ink-2 → --ink) with a warm vignette. That was right when the
+   whole site was #170000 AND the product images were opaque RGB baked onto the
+   same oxblood ground: photo and page met invisibly. Both halves of that are
+   now false — the page is paper and the artwork is a cut-out with real alpha —
+   so the dark version puts a heavy rectangle behind a floating silhouette,
+   which is the one thing the reference never does.
+
+   The tint is #E9E9E9 (--ghost) at 55%, compositing to ≈#F4F4F4 on white.
+   That is enough to read as a swept studio floor under the cut-out's own baked
+   ground shadow, and not enough to become a card. Written as a literal rgba
+   rather than color-mix() so it needs no @supports fallback.
+
+   Hairlines are deliberately NOT set here: each component owns its own edge in
+   css/pages.css, so this rule does exactly one job and can be reasoned about
+   on its own.
+
+   THE TWO !important FLAGS ARE GONE. They existed to defeat per-component
+   backgrounds in pages.css, but load order already does that: the cascade runs
+   tokens → base → pages → experience → nav, and equal-specificity rules
+   resolve by file order, so this block wins unaided. Keeping them would leave
+   every one of these four components permanently unstyleable from the file
+   that actually owns it — which is how a re-skin becomes a rewrite.
+   ========================================================================== */
+:root {
+  --product-bg:
+    radial-gradient(120% 90% at 50% 46%,
+      rgba(233, 233, 233, .55) 0%, rgba(255, 255, 255, 0) 68%);
+}
+.piece-figure,
+.stage,
+.room-item img,
+.media-split img {
+  background: var(--product-bg);
+  background-color: var(--paper);
+}
+
+
+/* ==========================================================================
+   THE CORRIDOR — product card stream (js/corridor.js builds the cards).
+   Fixed band height so the section can't shift layout while cards spawn.
+   ========================================================================== */
+#corridor {
+  position: relative;
+  height: 70vh;
+  min-height: 480px;
+  overflow: hidden;
+  background: var(--ink);
+  border-top: var(--edge);
+  border-bottom: var(--edge);
+  /* cqw units inside the canvas resolve against this container. */
+  container-type: inline-size;
+}
+#corridor-canvas { position: absolute; inset: 0; }
+
+/* Copy floats over the moving cards, kept legible by an ink scrim —
+   same treatment as the hero. */
+.corridor-body {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--section) 1.25rem;
+  background:
+    /* FLOOR. The CTA sits below the radial's centre, where the old single
+       gradient had already decayed to .34 and then to nothing — so the one
+       element that has to be clicked was the least protected thing in the
+       band. A linear scrim gives the bottom of the stack its own ground,
+       independent of how the radial falls off. */
+    linear-gradient(to top,
+      rgba(17,18,25,.88) 0%,
+      rgba(17,18,25,.58) 24%,
+      rgba(17,18,25,0)   50%),
+    /* PLATEAU HELD TO 85%. The old stops were .82 → .34 at 70% → 0 at 100%.
+       Two failures, both reproduced at 1440 and 390: .82 is not enough against
+       a front card at full brightness (they reach 297px on a phone and 1067px
+       on desktop — see js/corridor.js), and `.lead` is wider than the h2, so
+       its outer words landed past the 70% stop under a .34 scrim. Holding .88
+       out to 55% and .66 to 85% keeps the whole text column on solid ground.
+
+       Raising the alpha is free here: the scrim is tinted with --ink, which IS
+       #corridor's own background, so at any alpha it resolves toward the
+       section colour and can never band or halo against it. That was the
+       reason for the original rgba(23,0,0) → --ink change; it also removes the
+       usual ceiling on how opaque a scrim can go. */
+    radial-gradient(100% 76% at 50% 48%,
+      rgba(17,18,25,.92) 0%,
+      rgba(17,18,25,.88) 55%,
+      rgba(17,18,25,.66) 85%,
+      rgba(17,18,25,0)   100%);
+}
+.corridor-body .eyebrow { color: var(--primary-lite); }  /* 5.04:1 on the ink
+   corridor. --primary is 4.33:1, and at --fs-eyebrow (13px) this is body-copy
+   size however bold it is, so it owes the full 4.5:1. This rule also has to
+   out-specify .section-dark .eyebrow, which #corridor now carries. */
+.corridor-body h2 {
+  font-family: var(--grotesque);
+  /* Matches the display law: thin and wide, not the old 400 + tight tracking. */
+  font-weight: 200;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  font-size: var(--fs-h2);
+  margin: .6rem 0 .9rem;
+  max-width: 22ch;
+}
+
+/* Save-data / 2G fallback: a quiet static strip of three pieces. js/corridor.js
+   feeds it from the same cut-out array as the moving ribbon, so it needs the
+   same treatment — square, `contain`, and no frame. The old rule was written for
+   the opaque 4:3 masters: a 4/3 box with `cover` would crop the alpha margin,
+   and the border drew a visible rectangle around a transparent image. */
+.corridor-strip {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--gap);
+  padding: 3rem;
+}
+.corridor-strip img {
+  width: min(30%, 300px); aspect-ratio: 1; object-fit: contain;
+  border: 0;
+}
+#corridor-canvas img {
+  filter: drop-shadow(0 14px 22px rgba(17,18,25,.18));
+}
+
+#corridor.corridor-hero {
+  background: var(--paper);
+  color: var(--on-light);
+  border-top: 0;
+  border-bottom: 1px solid var(--hair);
+}
+#corridor.corridor-hero .corridor-body {
+  background:
+    linear-gradient(to top,
+      rgba(255,255,255,.74) 0%,
+      rgba(255,255,255,.38) 14%,
+      rgba(255,255,255,0)   32%),
+    radial-gradient(66% 58% at 50% 47%,
+      rgba(255,255,255,.92) 0%,
+      rgba(255,255,255,.86) 52%,
+      rgba(255,255,255,.54) 82%,
+      rgba(255,255,255,0)   100%);
+}
+.corridor-hero .corridor-body .eyebrow {
+  color: var(--primary-deep);
+  display: inline-flex;
+  align-items: center;
+  gap: .7rem;
+}
+.corridor-hero .corridor-body .eyebrow::before,
+.corridor-hero .corridor-body .eyebrow::after {
+  content: "";
+  width: 26px;
+  height: 2px;
+  background: var(--primary);
+}
+.corridor-hero .corridor-body h1 {
+  font-family: var(--grotesque);
+  font-weight: 200;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  font-size: var(--fs-h1);
+  margin: .6rem 0 1rem;
+  max-width: 16ch;
+}
+.corridor-hero .corridor-body .lead {
+  max-width: 48ch;
+  margin-inline: auto;
+  color: var(--on-light-mute);
+}
+
+@media (max-width: 700px) {
+  #corridor { height: 62vh; min-height: 420px; }
+  .corridor-hero { height: 54vh; min-height: 396px; }
+  .corridor-strip { flex-direction: column; }
+  .corridor-strip img { width: min(70%, 320px); }
+}
+
+
+/* The .btn-ar hover override that used to live here has been REMOVED.
+
+   It read `background: var(--ar-signal-dp)` and dated from the retired lime AR
+   colour law ("hover uses the deep lime, so every lime-family pixel stays
+   lime-family"). Two things made it actively harmful once .btn-ar became the
+   AntiMetal pill in css/base.css:
+
+     1. `background` is the SHORTHAND, so it reset background-image and
+        background-size to their initial values — wiping out the accent panel and
+        the sweep the hover state exists to perform.
+     2. experience.css loads AFTER base.css, and equal-specificity rules resolve
+        by file order, so this rule won. The new hover would have been dead on
+        arrival and the button would have flashed to a flat red rectangle.
+
+   Left as a comment rather than deleted silently: this is the second time a
+   stale rule in this file has quietly beaten base.css (see the corridor eyebrow
+   note), and the pattern is worth flagging where it happened. */

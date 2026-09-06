@@ -1,0 +1,160 @@
+# =============================================================================
+# Heaven Furniture Mart — server configuration for Apache / LiteSpeed
+# (Hostinger shared hosting runs LiteSpeed, which reads .htaccess.)
+#
+# Nothing here is required for the site to FUNCTION. Clean URLs already work
+# without rewrite rules, because every page is a directory containing
+# index.html and DirectoryIndex resolves it. This file is about transfer size,
+# caching and two MIME types.
+# =============================================================================
+
+# ---- MIME types -------------------------------------------------------------
+# .glb is the AR payload. model-viewer parses the bytes rather than trusting the
+# Content-Type, so this is belt-and-braces, but Android's Scene Viewer is
+# stricter about what it will open from a URL.
+<IfModule mod_mime.c>
+  AddType model/gltf-binary       .glb
+  AddType model/vnd.usdz+zip      .usdz
+  AddType image/webp              .webp
+  AddType image/svg+xml           .svg
+  AddType font/woff2              .woff2
+  AddType application/manifest+json .webmanifest
+  # Native ES modules are served as .js and MUST have a JavaScript MIME type or
+  # the browser refuses the module graph outright — the whole site would render
+  # unstyled chrome with no cards.
+  AddType text/javascript         .js
+</IfModule>
+
+# ---- Compression ------------------------------------------------------------
+# Only text formats. WebP, JPEG and GLB are already compressed; running deflate
+# over them costs CPU and returns nothing.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml application/xml text/xml
+</IfModule>
+
+# Brotli where the server has it, gzip above where it does not. Same file list,
+# and the browser picks whichever it advertised — so this is additive, never a
+# replacement. Measured on this site's own text assets: 158 KB of CSS gzips to
+# 46 KB and brotli-11s to roughly 38 KB, and the five stylesheets are on the
+# critical path of every page, so the ~17% is worth four lines.
+# LiteSpeed (Hostinger) supports mod_brotli; on a server without it the IfModule
+# simply skips, which is why this cannot break a deploy.
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/css text/javascript
+  AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
+  AddOutputFilterByType BROTLI_COMPRESS image/svg+xml application/xml text/xml
+</IfModule>
+
+# ---- Cache lifetimes --------------------------------------------------------
+# The six stylesheets are requested with a ?v=NN cache-buster, inlined in every
+# page's <head> rather than injected by the retired js/head.js — run
+# scripts/bump-css-version.py to change it. A long immutable lifetime is safe for
+# CSS: bumping that string is what invalidates it. Images, fonts, video and models
+# are content-addressed by filename and never edited in place, so they get a year.
+#
+# JAVASCRIPT IS DELIBERATELY NOT IMMUTABLE, AND THIS IS THE IMPORTANT LINE HERE.
+# It used to be, and that was a bug that could not be worked around: unlike the
+# stylesheets, nothing versions the JS. Every module is referenced as a bare path
+# (<script type="module" src="../../js/piece.js">, <link rel="modulepreload">, and
+# static `import` specifiers *inside* the modules themselves), so there is no
+# string to bump. A returning visitor who had cached js/piece.js would keep
+# running it, immutably, for a year — no JS fix could ever reach them. Versioning
+# the entry points would not help either, because a versioned entry still resolves
+# its own `import './pricing.js'` to an unversioned URL.
+#
+# So JS revalidates instead. The cost is one conditional GET per module on a
+# repeat visit — 5 to 14 per page — and each returns 304 with no body, because
+# LiteSpeed and Apache both emit ETag/Last-Modified for static files. That is a
+# few hundred bytes of headers to guarantee that a shipped fix is actually run.
+# The right long-term answer is content-hashed filenames from a build step; until
+# there is one, correctness beats the round trips.
+#
+# HTML is deliberately NOT cached long. It is the file that names which ?v= the
+# browser should fetch, so a stale copy would pin a visitor to old CSS.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault                          "access plus 1 month"
+  ExpiresByType text/html                 "access plus 0 seconds"
+  ExpiresByType text/css                  "access plus 1 year"
+  ExpiresByType text/javascript           "access plus 0 seconds"
+  ExpiresByType application/javascript    "access plus 0 seconds"
+  ExpiresByType image/webp                "access plus 1 year"
+  ExpiresByType image/jpeg                "access plus 1 year"
+  ExpiresByType image/svg+xml             "access plus 1 year"
+  ExpiresByType model/gltf-binary         "access plus 1 year"
+  ExpiresByType model/vnd.usdz+zip        "access plus 1 year"
+  ExpiresByType font/woff2                "access plus 1 year"
+  ExpiresByType video/mp4                 "access plus 1 year"
+  ExpiresByType application/manifest+json "access plus 1 week"
+  ExpiresByType application/xml           "access plus 1 day"
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|webp|jpg|jpeg|svg|glb|usdz|woff2|mp4)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # See the note above: unversioned module graph, so it must revalidate.
+  <FilesMatch "\.(js|mjs)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+    Header set CDN-Cache-Control "public, max-age=0, must-revalidate"
+    Header set Cloudflare-CDN-Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+    Header set CDN-Cache-Control "public, max-age=0, must-revalidate"
+    Header set Cloudflare-CDN-Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+
+  # ---- Security headers ----------------------------------------------------
+  # No CSP here on purpose. The site loads model-viewer from ajax.googleapis.com
+  # and QR images from api.qrserver.com, and js/corridor.js injects a <style>
+  # element at runtime, so a correct policy needs those three allowances plus
+  # 'unsafe-inline' for styles. Shipping a wrong CSP silently breaks AR, so it
+  # belongs in a deliberate pass rather than in a boilerplate header block.
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # Camera is the AR permission; keep it same-origin rather than wide open.
+  Header set Permissions-Policy "camera=(self), geolocation=(), microphone=()"
+</IfModule>
+
+# ---- Directory listings -----------------------------------------------------
+# assets/models/ and assets/img/ have no index.html; without this the server
+# would happily print their contents to anyone who asks.
+Options -Indexes
+
+# ---- 404 --------------------------------------------------------------------
+# /404.html carries ROOT-ABSOLUTE asset paths and static chrome, because the
+# browser's URL stays on the missing page while this file is served — a
+# document-relative stylesheet would resolve against the bad path and 404 too.
+ErrorDocument 404 /404.html
+
+# ---- Redirects --------------------------------------------------------------
+# /room/ was the room board, then the order request sheet; it is the cart now.
+# A 301 rather than a 302: the move is permanent, and search engines should
+# transfer the URL's history to /cart/ rather than keep indexing both.
+# room/index.html also carries a meta refresh, which is what covers the local
+# dev server and any host where mod_rewrite is unavailable.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Canonical HTTPS enforcement
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://yourfirstsite.com/$1 [R=301,L]
+
+  # Canonical apex domain enforcement (redirect www.yourfirstsite.com to yourfirstsite.com)
+  RewriteCond %{HTTP_HOST} ^www\.yourfirstsite\.com$ [NC]
+  RewriteRule ^(.*)$ https://yourfirstsite.com/$1 [R=301,L]
+
+  RewriteRule ^room/?$ /cart/ [R=301,L]
+</IfModule>
+
+# The order endpoint's credentials, if a PHP transport is ever added, must never
+# be web-readable. Harmless while no such file exists.
+<FilesMatch "^config\.php$">
+  Require all denied
+</FilesMatch>
